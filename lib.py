@@ -45,7 +45,7 @@ def printProgress(step, total):
     sys.stdout.write("%s%%" % round(1.0*step/total*100,2))
     sys.stdout.flush()
 
-def readCsv(filename, doParseNumbers=True, skipLines=0, encoding="utf8", readDict=True, verbose=True):
+def readCsv(filename, doParseNumbers=True, skipLines=0, encoding="utf8", readDict=True, verbose=True, delimiter=","):
     rows = []
     fieldnames = []
     if os.path.isfile(filename):
@@ -56,7 +56,7 @@ def readCsv(filename, doParseNumbers=True, skipLines=0, encoding="utf8", readDic
             lines = lines[skipLines:]
         lines = [line for line in lines if not line.startswith("#")]
         if readDict:
-            reader = csv.DictReader(lines, skipinitialspace=True)
+            reader = csv.DictReader(lines, skipinitialspace=True, delimiter=delimiter)
             fieldnames = list(reader.fieldnames)
         else:
             reader = csv.reader(lines, skipinitialspace=True)
