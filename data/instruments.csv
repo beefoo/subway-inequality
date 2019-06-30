@@ -1,4 +1,4 @@
-Name,Type,Price,Bracket Min,Bracket Max,File,From Gain,To Gain,From Tempo,To Tempo,Gain Phase,Tempo Phase,Tempo Offset,Interval Phase,Interval,Interval Offset,Active
+name,type,price,bracket_min,bracket_max,file,from_gain,to_gain,from_tempo,to_tempo,gain_phase,tempo_phase,tempo_offset,interval_phase,interval,interval_offset,active
 Vocal 1,Wind,0,0,20,say_you_vocal_0-00.wav,0.05,0.05,1,1,42,28,0,24,2,1,1
 Vocal 1,Wind,0,20,60,say_you_vocal_0-00.wav,0.05,0.1,1,1,42,28,0,24,2,1,1
 Vocal 1,Wind,0,60,100,say_you_vocal_0-00.wav,0.05,0.2,1,1,42,28,0,24,2,1,1
