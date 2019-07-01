@@ -81,9 +81,9 @@ def createLookup(arr, key):
 
 def drawTextLinesToImage(draw, lines, font, lineMargin, letterMargin, cx, cy, color):
     y = cy
-    for text in lines:
+    for text in reversed(lines):
         lw, lh = drawTextToImage(draw, text, font, letterMargin, cx, y, color)
-        y += lh + lineMargin
+        y -= (lh + lineMargin)
 
 def drawTextToImage(draw, text, font, letterMargin, cx, cy, color):
     lw, lh = getLineSize(font, text, letterMargin)

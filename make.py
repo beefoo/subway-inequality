@@ -43,12 +43,12 @@ parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/-
 # Visual design config
 parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.3125, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
 parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.333, help="Station text width as a percent of the screen width")
-parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.5, help="Center y as a percent of screen height")
-parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.375, help="Borough text center y as a percent of screen height")
-parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.625, help="Station text center y as a percent of screen height")
+parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.45, help="Center y as a percent of screen height")
+parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
+parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.3, help="Station text center y as a percent of screen height")
 parser.add_argument('-cw', dest="CIRCLE_WIDTH", type=int, default=90, help="Circle radius in pixels assuming 1920x1080")
 parser.add_argument('-lh', dest="LINE_HEIGHT", type=int, default=28, help="Height of horizontal line in pixels assuming 1920x1080")
-parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=145, help="Height of boundary line in pixels assuming 1920x1080")
+parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=166, help="Height of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-bw', dest="BOUNDARY_WIDTH", type=int, default=3, help="Width of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-bm', dest="BOUNDARY_MARGIN", type=int, default=48, help="Horizontal margin of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-mw', dest="MARKER_WIDTH", type=int, default=8, help="Height of horizontal line in pixels assuming 1920x1080")
@@ -63,6 +63,12 @@ parser.add_argument('-atc', dest="ALT_TEXT_COLOR", default="#aaaaaa", help="Seco
 parser.add_argument('-mc', dest="MARKER_COLOR", default="#dddddd", help="Marker color")
 parser.add_argument('-sfont', dest="STATION_FONT", default="fonts/OpenSans-Bold.ttf", help="Station font")
 parser.add_argument('-bfont', dest="BOROUGH_FONT", default="fonts/OpenSans-SemiBold.ttf", help="Borough font")
+parser.add_argument('-map', dest="MAP_IMAGE", default="img/nyc.png", help="Station font")
+parser.add_argument('-mcoord', dest="MAP_COORDS", default=" -74.1261,40.9087,-73.7066,40.5743", help="Top left, bottom right point")
+parser.add_argument('-mapm', dest="MAP_MARGIN", type=int, default=30, help="Margin of map in pixels assuming 1920x1080")
+parser.add_argument('-mapw', dest="MAP_W", type=int, default=360, help="Map width in pixels assuming 1920x1080")
+parser.add_argument('-mlw', dest="MAP_LINE_WIDTH", type=int, default=4, help="Map line in pixels assuming 1920x1080")
+parser.add_argument('-mlc', dest="MAP_LINE_COLOR", default="#cccccc", help="Secondary text color")
 a = parser.parse_args()
 
 # Calculations
@@ -266,6 +272,10 @@ aa["STATION_TEXT_MARGIN"] = roundInt(a.STATION_TEXT_MARGIN * RESOLUTION)
 aa["STATION_LETTER_MARGIN"] = roundInt(a.STATION_LETTER_MARGIN * RESOLUTION)
 aa["BOROUGH_TEXT_SIZE"] = roundInt(a.BOROUGH_TEXT_SIZE * RESOLUTION)
 aa["BOROUGH_LETTER_MARGIN"] = roundInt(a.BOROUGH_LETTER_MARGIN * RESOLUTION)
+aa["MAP_COORDS"] = tuple([float(c) for c in a.MAP_COORDS.strip().split(",")])
+aa["MAP_MARGIN"] = roundInt(a.MAP_MARGIN * RESOLUTION)
+aa["MAP_W"] = roundInt(a.MAP_W * RESOLUTION)
+aa["MAP_LINE_WIDTH"] = roundInt(a.MAP_LINE_WIDTH * RESOLUTION)
 
 # Add borough names
 boroughNames = {
@@ -279,6 +289,7 @@ for i, station in enumerate(stations):
     stations[i]["borough"] = boroughNames[station["Borough"]]
 
 x = 0
+mlon0, mlat0, mlon1, mlat1 = a.MAP_COORDS
 for i, station in enumerate(stations):
     boroughNext = station["borough"]
     if i < stationCount-1:
@@ -288,6 +299,8 @@ for i, station in enumerate(stations):
     stations[i]["x"] = x
     stations[i]["x0"] = x - a.TEXT_WIDTH / 2
     stations[i]["x1"] = x + a.TEXT_WIDTH / 2
+    stations[i]["mapNx"] = norm(station["GTFS Longitude"], (mlon0, mlon1))
+    stations[i]["mapNy"] = norm(station["GTFS Latitude"], (mlat0, mlat1))
     x += stations[i]["width"]
 totalW = x
 pxPerMs = 1.0 * totalW / totalMs
@@ -302,14 +315,15 @@ totalFrames = int(ceilToNearest(totalFrames, a.FPS))
 sequenceDuration = frameToMs(totalFrames, a.FPS)
 basename = getBasename(a.DATA_FILE)
 
-def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a):
+def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a):
     if not a.OVERWRITE and os.path.isfile(filename):
         return
 
     im = Image.new('RGB', (a.WIDTH, a.HEIGHT), a.BG_COLOR)
     draw = ImageDraw.Draw(im, 'RGBA')
     cx = roundInt(a.WIDTH * 0.5)
-    cy = roundInt(a.HEIGHT * 0.5)
+    cy = a.CENTER_Y
+    stationCount = len(stations)
 
     leftX = xOffset
     rightX = leftX + totalW
@@ -365,6 +379,33 @@ def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontB
         slines = getMultilines(s["Stop Name"], fontStation, a.TEXT_WIDTH, a.STATION_LETTER_MARGIN)
         drawTextLinesToImage(draw, slines, fontStation, a.STATION_TEXT_MARGIN, a.STATION_LETTER_MARGIN, stx, sty, a.TEXT_COLOR)
 
+    # draw the map
+    mw, mh = mapImg.size
+    mx = a.MAP_MARGIN
+    my = a.HEIGHT - mh - a.MAP_MARGIN
+    im.paste(mapImg, (mx, my))
+    lineColor = "#"+stations[0]["color"]
+    points = []
+    allPoints = []
+    for i, s in enumerate(stations):
+        sms0 = s["ms"]
+        sms1 = ms + s["duration"]
+        mprogress = norm(ms, (sms0, sms1)) if s["duration"] > 0 else 1.0
+        lx = lerp((mx, mx+mw), s["mapNx"])
+        ly = lerp((my, my+mh), s["mapNy"])
+        if ms >= sms0:
+            points.append((lx, ly))
+        if mprogress < 1.0 and i < stationCount-1 and s["duration"] > 0:
+            lx1 = lerp((mx, mx+mw), stations[i+1]["mapNx"])
+            ly1 = lerp((my, my+mh), stations[i+1]["mapNy"])
+            lx2 = lerp((lx, lx1), mprogress)
+            ly2 = lerp((ly, ly1), mprogress)
+            points.append((lx2, ly2))
+        allPoints.append((lx, ly))
+    draw.line(allPoints, fill=a.MAP_LINE_COLOR, width=max(1, a.MAP_LINE_WIDTH-1))
+    if len(points) > 1:
+        draw.line(points, fill=lineColor, width=a.MAP_LINE_WIDTH)
+
     # draw the marker
     x0 = cx - a.MARKER_WIDTH/2
     x1 = x0 + a.MARKER_WIDTH
@@ -413,6 +454,9 @@ if not a.AUDIO_ONLY:
 
     bulletImg = Image.open(a.IMAGE_FILE)
     bulletImg = bulletImg.resize((a.CIRCLE_WIDTH, a.CIRCLE_WIDTH), resample=Image.LANCZOS)
+    mapImg = Image.open(a.MAP_IMAGE)
+    mapH = roundInt((1.0 * mapImg.size[1] / mapImg.size[0]) * a.MAP_W)
+    mapImg = mapImg.resize((a.MAP_W, mapH), resample=Image.LANCZOS)
     fontStation = ImageFont.truetype(font=a.STATION_FONT, size=a.STATION_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
     fontBorough = ImageFont.truetype(font=a.BOROUGH_FONT, size=a.BOROUGH_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
 
@@ -422,7 +466,7 @@ if not a.AUDIO_ONLY:
         ms = lim(frameToMs(a.SINGLE_FRAME, a.FPS) - a.PAD_START, (0, totalMs))
         frames = msToFrame(ms, a.FPS)
         xOffset = roundInt(a.WIDTH * 0.5) - pxPerFrame * frames
-        drawFrame("output/frame.png", xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
+        drawFrame("output/frame.png", ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
         sys.exit()
 
     if a.OVERWRITE:
@@ -435,7 +479,7 @@ if not a.AUDIO_ONLY:
         frame = f + 1
         ms = frameToMs(frame, a.FPS)
         frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
-        drawFrame(frameFilename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
+        drawFrame(frameFilename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
 
         if a.PAD_START <= ms < (a.PAD_START+totalMs):
             xOffset -= pxPerFrame
