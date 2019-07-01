@@ -166,14 +166,32 @@ def getBeatMs(instrument, beat, round_to):
     return ms
 
 # Return if the instrument should be played in the given interval
-def isValidInterval(instrument, elapsed_ms):
+def isValidInterval(instrument, elapsed_ms, start_ms, end_ms, minIntervalDuration=3000):
     interval_ms = instrument['interval_ms']
     interval = instrument['interval']
     interval_offset = instrument['interval_offset']
-    return int(math.floor(1.0*elapsed_ms/interval_ms)) % interval == interval_offset
+    isValid = (int(math.floor(1.0*elapsed_ms/interval_ms)) % interval == interval_offset)
+    # return isValid
+    if end_ms - start_ms <= minIntervalDuration * 3:
+        return isValid
+    # check to see if we're at the start and not long enough
+    if isValid and elapsed_ms < (start_ms+minIntervalDuration) and not isValidInterval(instrument, start_ms+minIntervalDuration, start_ms, end_ms, minIntervalDuration):
+        isValid = False
+    # make start interval earlier if necessary
+    elif not isValid and elapsed_ms < (start_ms+minIntervalDuration) and isValidInterval(instrument, start_ms+minIntervalDuration, start_ms, end_ms, minIntervalDuration):
+        isValid = True
+    # check to see if we're at the end and not long enough
+    elif isValid and elapsed_ms > (end_ms-minIntervalDuration) and not isValidInterval(instrument, end_ms-minIntervalDuration, start_ms, end_ms, minIntervalDuration):
+        isValid = False
+    # make start interval earlier if necessary
+    elif not isValid and elapsed_ms > (end_ms-minIntervalDuration) and isValidInterval(instrument, end_ms-minIntervalDuration, start_ms, end_ms, minIntervalDuration):
+        isValid = True
+    return isValid
 
 # Add beats to sequence
 def addBeatsToSequence(sequence, instrument, duration, ms, beat_ms, round_to, pad_start):
+    msStart = ms
+    msEnd = ms + duration
     offset_ms = int(instrument['tempo_offset'] * beat_ms)
     ms += offset_ms
     previous_ms = int(ms)
@@ -192,7 +210,7 @@ def addBeatsToSequence(sequence, instrument, duration, ms, beat_ms, round_to, pa
             elapsed_beat = int(elapsed_ms / beat_ms)
         this_beat_ms = getBeatMs(instrument, elapsed_beat, round_to)
         # add to sequence if in valid interval
-        if isValidInterval(instrument, elapsed_ms):
+        if isValidInterval(instrument, elapsed_ms, msStart, msEnd):
             variance = roundInt(rn * a.VARIANCE_MS * 2 - a.VARIANCE_MS)
             sequence.append({
                 'instrumentIndex': instrument["index"],
