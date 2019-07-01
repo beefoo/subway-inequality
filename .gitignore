@@ -1,1 +1,4 @@
 *.pyc
+output/*
+!output/.keep
+tmp/*
