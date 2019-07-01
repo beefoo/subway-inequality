@@ -261,7 +261,7 @@ totalFrames = int(ceilToNearest(totalFrames, a.FPS))
 sequenceDuration = frameToMs(totalFrames, a.FPS)
 basename = getBasename(a.DATA_FILE)
 
-def drawFrame(filename, xOffset, stations, totalW, bulletImg, a):
+def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a):
     if not a.OVERWRITE and os.path.isfile(filename):
         return
 
@@ -328,15 +328,18 @@ if a.OVERWRITE:
 print("Making video frame sequence...")
 videoFrames = []
 xOffset = roundInt(a.WIDTH * 0.5)
+fontStation = ImageFont.truetype(font=a.STATION_FONT, size=a.STATION_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
+fontBorough = ImageFont.truetype(font=a.BOROUGH_FONT, size=a.BOROUGH_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
 for f in range(totalFrames):
     frame = f + 1
     ms = frameToMs(frame, a.FPS)
     frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
-    drawFrame(frameFilename, xOffset, stations, totalW, bulletImg, a)
+    drawFrame(frameFilename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
 
     if a.PAD_START <= ms < a.PAD_END:
         xOffset -= pxPerFrame
 
+    printProgress(frame, totalFrames)
     break
 
 if a.OVERWRITE or not os.path.isfile(audioFilename):
