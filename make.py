@@ -3,7 +3,7 @@
 import argparse
 # import gizeh
 import os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from pprint import pprint
 import sys
 
@@ -26,6 +26,10 @@ parser.add_argument('-out', dest="OUTPUT_FILE", default="output/subway_line_%s.m
 parser.add_argument('-overwrite', dest="OVERWRITE", action="store_true", help="Overwrite existing files?")
 parser.add_argument('-probe', dest="PROBE", action="store_true", help="Just view statistics?")
 parser.add_argument('-reverse', dest="REVERSE", action="store_true", help="Reverse the line?")
+parser.add_argument('-ao', dest="AUDIO_ONLY", action="store_true", help="Only output audio?")
+parser.add_argument('-vo', dest="VIDEO_ONLY", action="store_true", help="Only output video?")
+parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help="Output a visualization of the sequence")
+parser.add_argument('-frame', dest="SINGLE_FRAME", default=-1, type=int, help="Output just a single frame")
 
 # Music config
 parser.add_argument('-gain', dest="GAIN_DB", type=float, default=-4.0, help="Gain to apply to each clip in decibels")
@@ -38,17 +42,21 @@ parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/-
 
 # Visual design config
 parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.3125, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
-parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.5, help="Station text width as a percent of the screen width")
+parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.333, help="Station text width as a percent of the screen width")
 parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.5, help="Center y as a percent of screen height")
 parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.375, help="Borough text center y as a percent of screen height")
 parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.625, help="Station text center y as a percent of screen height")
 parser.add_argument('-cw', dest="CIRCLE_WIDTH", type=int, default=90, help="Circle radius in pixels assuming 1920x1080")
 parser.add_argument('-lh', dest="LINE_HEIGHT", type=int, default=28, help="Height of horizontal line in pixels assuming 1920x1080")
-parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=240, help="Height of horizontal line in pixels assuming 1920x1080")
-parser.add_argument('-bw', dest="BOUNDARY_WIDTH", type=int, default=3, help="Height of horizontal line in pixels assuming 1920x1080")
+parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=145, help="Height of boundary line in pixels assuming 1920x1080")
+parser.add_argument('-bw', dest="BOUNDARY_WIDTH", type=int, default=3, help="Width of boundary line in pixels assuming 1920x1080")
+parser.add_argument('-bm', dest="BOUNDARY_MARGIN", type=int, default=48, help="Horizontal margin of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-mw', dest="MARKER_WIDTH", type=int, default=8, help="Height of horizontal line in pixels assuming 1920x1080")
 parser.add_argument('-sts', dest="STATION_TEXT_SIZE", type=int, default=60, help="Station text size in pixels assuming 1920x1080")
+parser.add_argument('-stm', dest="STATION_TEXT_MARGIN", type=int, default=20, help="Station text bottom margin in pixels assuming 1920x1080")
+parser.add_argument('-slm', dest="STATION_LETTER_MARGIN", type=int, default=1, help="Space after each station text letter in pixels assuming 1920x1080")
 parser.add_argument('-bts', dest="BOROUGH_TEXT_SIZE", type=int, default=48, help="Borough text size in pixels assuming 1920x1080")
+parser.add_argument('-blm', dest="BOROUGH_LETTER_MARGIN", type=int, default=1, help="Space after each borough text letter in pixels assuming 1920x1080")
 parser.add_argument('-bg', dest="BG_COLOR", default="#000000", help="Background color")
 parser.add_argument('-tc', dest="TEXT_COLOR", default="#eeeeee", help="Text color")
 parser.add_argument('-atc', dest="ALT_TEXT_COLOR", default="#aaaaaa", help="Secondary text color")
@@ -187,6 +195,7 @@ def addBeatsToSequence(sequence, instrument, duration, ms, beat_ms, round_to, pa
         if isValidInterval(instrument, elapsed_ms):
             variance = roundInt(rn * a.VARIANCE_MS * 2 - a.VARIANCE_MS)
             sequence.append({
+                'instrumentIndex': instrument["index"],
                 'filename': instrument["file"],
                 # 'gain': getGain(instrument, elapsed_beat) + a.GAIN_DB,
                 'volume': getVolume(instrument, elapsed_beat),
@@ -218,7 +227,6 @@ for i, instrument in enumerate(instruments):
     if stationQueueDur > 0:
         sequence = addBeatsToSequence(sequence, instrument, stationQueueDur, ms, BEAT_MS, ROUND_TO_NEAREST, a.PAD_START)
 sequenceDuration = max([s["ms"] for s in sequence]) + a.PAD_END
-
 # Now start the video frame logic
 
 # Calculations
@@ -231,18 +239,33 @@ aa["STATION_TEXT_Y"] = roundInt(1.0 * a.HEIGHT * a.STATION_TEXT_Y)
 RESOLUTION = a.WIDTH / 1920.0
 aa["CIRCLE_WIDTH"] = roundInt(a.CIRCLE_WIDTH * RESOLUTION)
 aa["LINE_HEIGHT"] = roundInt(a.LINE_HEIGHT * RESOLUTION)
+aa["BOUNDARY_MARGIN"] = roundInt(a.BOUNDARY_MARGIN * RESOLUTION)
 aa["BOUNDARY_HEIGHT"] = roundInt(a.BOUNDARY_HEIGHT * RESOLUTION)
 aa["BOUNDARY_WIDTH"] = roundInt(a.BOUNDARY_WIDTH * RESOLUTION)
 aa["MARKER_WIDTH"] = roundInt(a.MARKER_WIDTH * RESOLUTION)
 aa["STATION_TEXT_SIZE"] = roundInt(a.STATION_TEXT_SIZE * RESOLUTION)
+aa["STATION_TEXT_MARGIN"] = roundInt(a.STATION_TEXT_MARGIN * RESOLUTION)
+aa["STATION_LETTER_MARGIN"] = roundInt(a.STATION_LETTER_MARGIN * RESOLUTION)
 aa["BOROUGH_TEXT_SIZE"] = roundInt(a.BOROUGH_TEXT_SIZE * RESOLUTION)
+aa["BOROUGH_LETTER_MARGIN"] = roundInt(a.BOROUGH_LETTER_MARGIN * RESOLUTION)
+
+# Add borough names
+boroughNames = {
+    "Q": "Queens",
+    "M": "Manhattan",
+    "Bk": "Brooklyn",
+    "Bx": "Bronx",
+    "SI": "Staten Island"
+}
+for i, station in enumerate(stations):
+    stations[i]["borough"] = boroughNames[station["Borough"]]
 
 x = 0
 for i, station in enumerate(stations):
-    boroughNext = station["Borough"]
+    boroughNext = station["borough"]
     if i < stationCount-1:
-        boroughNext = stations[i+1]["Borough"]
-    stations[i]["BoroughNext"] = boroughNext
+        boroughNext = stations[i+1]["borough"]
+    stations[i]["boroughNext"] = boroughNext
     stations[i]["width"] = roundInt(1.0 * station["duration"] / minDuration * a.STATION_WIDTH)
     stations[i]["x"] = x
     stations[i]["x0"] = x - a.TEXT_WIDTH / 2
@@ -281,6 +304,24 @@ def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontB
     draw.rectangle([(x0, y0), (x1, y1)], fill=a.ALT_TEXT_COLOR)
 
     for i, s in enumerate(stations):
+        # check to see if we should draw borough divider
+        if s["borough"] != s["boroughNext"]:
+            bdx = roundInt(xOffset + (s["x"] + stations[i+1]["x"]) * 0.5)
+            bdx0 = bdx - a.WIDTH/2
+            bdx1 = bdx + a.WIDTH/2
+            if 0 <= bdx0 <= a.WIDTH or 0 <= bdx1 <= a.WIDTH:
+                dx0 = bdx - a.BOUNDARY_WIDTH/2
+                dx1 = dx0 + a.BOUNDARY_WIDTH
+                dy0 = cy - a.BOUNDARY_HEIGHT
+                dy1 = dy0 + a.BOUNDARY_HEIGHT
+                draw.rectangle([(dx0, dy0), (dx1, dy1)], fill=a.ALT_TEXT_COLOR)
+                blw, blh = getLineSize(fontBorough, s["borough"], a.BOROUGH_LETTER_MARGIN)
+                bx = dx0 - a.BOUNDARY_MARGIN - blw/2
+                drawTextToImage(draw, s["borough"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
+                blw, blh = getLineSize(fontBorough, s["boroughNext"], a.BOROUGH_LETTER_MARGIN)
+                bx = dx1 + a.BOUNDARY_MARGIN + blw/2
+                drawTextToImage(draw, s["boroughNext"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
+
         # check if station is visible
         sx0 = xOffset + s["x0"]
         sx1 = xOffset + s["x1"]
@@ -291,6 +332,9 @@ def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontB
         sy = a.CENTER_Y
 
         # draw borough text
+        bx = sx
+        by = a.BOROUGH_TEXT_Y
+        drawTextToImage(draw, s["borough"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, by, a.ALT_TEXT_COLOR)
 
         # draw bullet
         bx = roundInt(sx - a.CIRCLE_WIDTH/2)
@@ -298,6 +342,10 @@ def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontB
         im.paste(bulletImg, (bx, by), bulletImg)
 
         # draw station text
+        stx = sx
+        sty = a.STATION_TEXT_Y
+        slines = getMultilines(s["Stop Name"], fontStation, a.TEXT_WIDTH, a.STATION_LETTER_MARGIN)
+        drawTextLinesToImage(draw, slines, fontStation, a.STATION_TEXT_MARGIN, a.STATION_LETTER_MARGIN, stx, sty, a.TEXT_COLOR)
 
     # draw the marker
     x0 = cx - a.MARKER_WIDTH/2
@@ -308,41 +356,86 @@ def drawFrame(filename, xOffset, stations, totalW, bulletImg, fontStation, fontB
 
     del draw
     im.save(filename)
-    print("Saved %s" % filename)
-
-bulletImg = Image.open(a.IMAGE_FILE)
-bulletImg = bulletImg.resize((a.CIRCLE_WIDTH, a.CIRCLE_WIDTH), resample=Image.LANCZOS)
+    # print("Saved %s" % filename)
 
 audioFilename = a.AUDIO_OUTPUT_FILE % basename
 print("%s steps in sequence" % len(sequence))
 print('Total sequence time: %s' % formatSeconds(sequenceDuration/1000.0))
 
+if a.VISUALIZE_SEQUENCE:
+    instrumentsCount = len(instruments)
+    labelW = 200
+    unitH = 10
+    unitW = 10
+    marginH = 2
+    imgH = (unitH+marginH) * instrumentsCount
+    imgW = totalSeconds * unitW + labelW
+    dfont = ImageFont.truetype(font="fonts/OpenSans-Regular.ttf", size=10)
+    print("Making viz %s x %s" % (imgW, imgH))
+
+    im = Image.new('RGB', (imgW, imgH), "#000000")
+    draw = ImageDraw.Draw(im, 'RGB')
+    for i, ins in enumerate(instruments):
+        y = i * (unitH + marginH)
+        draw.text((2, y), ins["name"], fill="#FFFFFF", font=dfont)
+        steps = [step for step in sequence if step["instrumentIndex"]==ins["index"]]
+        for step in steps:
+            sx = roundInt((step["ms"] - a.PAD_START) / 1000.0 / totalSeconds * (imgW-labelW) + labelW)
+            draw.rectangle([(sx, y), (sx+3, y+unitH)], fill=(roundInt(255*step["volume"]),0,0))
+        if i > 0:
+            draw.line([(0, y-1), (imgW, y-1)], fill="#cccccc", width=1)
+        printProgress(i+1, instrumentsCount)
+    im.save("output/viz.png")
+    sys.exit()
+
 if a.PROBE:
     sys.exit()
 
-makeDirectories([a.OUTPUT_FRAME % (basename, "*")])
+if not a.AUDIO_ONLY:
 
-if a.OVERWRITE:
-    removeFiles(a.OUTPUT_FRAME % (basename, "*"))
+    bulletImg = Image.open(a.IMAGE_FILE)
+    bulletImg = bulletImg.resize((a.CIRCLE_WIDTH, a.CIRCLE_WIDTH), resample=Image.LANCZOS)
+    fontStation = ImageFont.truetype(font=a.STATION_FONT, size=a.STATION_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
+    fontBorough = ImageFont.truetype(font=a.BOROUGH_FONT, size=a.BOROUGH_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
 
-print("Making video frame sequence...")
-videoFrames = []
-xOffset = roundInt(a.WIDTH * 0.5)
-fontStation = ImageFont.truetype(font=a.STATION_FONT, size=a.STATION_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
-fontBorough = ImageFont.truetype(font=a.BOROUGH_FONT, size=a.BOROUGH_TEXT_SIZE, layout_engine=ImageFont.LAYOUT_RAQM)
-for f in range(totalFrames):
-    frame = f + 1
-    ms = frameToMs(frame, a.FPS)
-    frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
-    drawFrame(frameFilename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
+    makeDirectories([a.OUTPUT_FRAME % (basename, "*")])
 
-    if a.PAD_START <= ms < a.PAD_END:
-        xOffset -= pxPerFrame
+    if a.SINGLE_FRAME > 0:
+        ms = lim(frameToMs(a.SINGLE_FRAME, a.FPS) - a.PAD_START, (0, totalMs))
+        frames = msToFrame(ms, a.FPS)
+        xOffset = roundInt(a.WIDTH * 0.5) - pxPerFrame * frames
+        drawFrame("output/frame.png", xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
+        sys.exit()
 
-    printProgress(frame, totalFrames)
-    break
+    if a.OVERWRITE:
+        removeFiles(a.OUTPUT_FRAME % (basename, "*"))
+
+    print("Making video frame sequence...")
+    videoFrames = []
+    xOffset = roundInt(a.WIDTH * 0.5)
+    for f in range(totalFrames):
+        frame = f + 1
+        ms = frameToMs(frame, a.FPS)
+        frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
+        drawFrame(frameFilename, xOffset, stations, totalW, bulletImg, fontStation, fontBorough, a)
+
+        if a.PAD_START <= ms < (a.PAD_START+totalMs):
+            xOffset -= pxPerFrame
+
+        printProgress(frame, totalFrames)
+    #     break
+
+padZeros = len(str(totalFrames))
+outfile = a.OUTPUT_FILE % basename
+frameInfile = a.OUTPUT_FRAME % (basename, '%s')
+
+if a.VIDEO_ONLY:
+    compileFrames(frameInfile, a.FPS, outfile, padZeros)
+    sys.exit()
 
 if a.OVERWRITE or not os.path.isfile(audioFilename):
     mixAudio(sequence, sequenceDuration, audioFilename, masterDb=a.MASTER_DB)
 else:
     print("%s already exists" % audioFilename)
+
+compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)

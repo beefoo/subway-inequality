@@ -6,6 +6,7 @@ import os
 from pprint import pprint
 from pydub import AudioSegment
 import random
+import subprocess
 import sys
 import time
 
@@ -27,8 +28,74 @@ def ceilInt(n):
 def ceilToNearest(n, nearest):
     return 1.0 * math.ceil(1.0*n/nearest) * nearest
 
+def compileFrames(infile, fps, outfile, padZeros, audioFile=None, quality="high"):
+    print("Compiling frames...")
+    padStr = '%0'+str(padZeros)+'d'
+
+    # https://trac.ffmpeg.org/wiki/Encode/H.264
+    # presets: veryfast, faster, fast, medium, slow, slower, veryslow
+    #   slower = better quality
+    # crf: 0 is lossless, 23 is the default, and 51 is worst possible quality
+    #   17 or 18 to be visually lossless or nearly so
+    preset = "veryslow"
+    crf = "18"
+    if quality=="medium":
+        preset = "medium"
+        crf = "23"
+    elif quality=="low":
+        preset = "medium"
+        crf = "28"
+
+    if audioFile:
+        command = ['ffmpeg','-y',
+                    '-framerate',str(fps)+'/1',
+                    '-i',infile % padStr,
+                    '-i',audioFile,
+                    '-c:v','libx264',
+                    '-preset', preset,
+                    '-crf', crf,
+                    '-r',str(fps),
+                    '-pix_fmt','yuv420p',
+                    '-c:a','aac',
+                    # '-q:v','1',
+                    '-b:a', '192k',
+                    # '-shortest',
+                    outfile]
+    else:
+        command = ['ffmpeg','-y',
+                    '-framerate',str(fps)+'/1',
+                    '-i',infile % padStr,
+                    '-c:v','libx264',
+                    '-preset', preset,
+                    '-crf', crf,
+                    '-r',str(fps),
+                    '-pix_fmt','yuv420p',
+                    # '-q:v','1',
+                    outfile]
+    print(" ".join(command))
+    finished = subprocess.check_call(command)
+    print("Done.")
+
 def createLookup(arr, key):
     return dict([(str(item[key]), item) for item in arr])
+
+def drawTextLinesToImage(draw, lines, font, lineMargin, letterMargin, cx, cy, color):
+    y = cy
+    for text in lines:
+        lw, lh = drawTextToImage(draw, text, font, letterMargin, cx, y, color)
+        y += lh + lineMargin
+
+def drawTextToImage(draw, text, font, letterMargin, cx, cy, color):
+    lw, lh = getLineSize(font, text, letterMargin)
+    x0 = cx - lw/2
+    y = cy - lh/2
+    chars = list(text)
+    x = x0
+    for char in chars:
+        draw.text((x, y), char, font=font, fill=color)
+        cw, ch = font.getsize(char)
+        x += cw + letterMargin
+    return (lw, lh)
 
 def earthDistance(lat1, lng1, lat2, lng2):
     earthRadius = 6371000.0 # meters
@@ -41,6 +108,7 @@ def earthDistance(lat1, lng1, lat2, lng2):
 
 def ease(value):
     eased = math.sin(value * math.pi)
+    # eased = (math.sin((value+1.5)*math.pi)+1.0) / 2.0
     eased = lim(eased)
     return eased
 
@@ -86,6 +154,51 @@ def getAudio(filename, sampleWidth=4, sampleRate=48000, channels=2):
 
 def getBasename(fn):
     return os.path.splitext(os.path.basename(fn))[0]
+
+def getLineSize(font, text, letterMargin=0):
+    aw, ah = font.getsize("A")
+    lw, lh = font.getsize(text)
+    lh = ah # standardize line height
+    clen = len(text)
+    if clen > 1:
+        lw += letterMargin * (clen-1)
+    return (lw, lh)
+
+def getMultilines(text, font, maxWidth, letterMargin):
+    mlines = [text]
+    lw, lh = getLineSize(font, text, letterMargin)
+
+    # for line items, wrap into multiline
+    if lw > maxWidth:
+        mlines = []
+        words = text.split()
+        currentLineText = ""
+        wordCount = len(words)
+        for i, word in enumerate(words):
+            # Automatically break if we reach a hyphen
+            if word == "-" and len(currentLineText) > 0:
+                mlines.append(currentLineText)
+                currentLineText = ""
+                continue
+            testString = word if len(currentLineText) < 1 else currentLineText + " " + word
+            testW, _ = getLineSize(font, testString, letterMargin)
+            # test string too long, must add previous line and move on to next line
+            if testW > maxWidth:
+                if len(currentLineText) > 0:
+                    addText = currentLineText
+                    currentLineText = word
+                # Word is too long... just add it
+                else:
+                    addText = word
+                mlines.append(addText)
+            # otherwise add to current line
+            else:
+                currentLineText = testString
+            # leftover text at the end; just add it
+            if i >= wordCount-1 and len(currentLineText) > 0:
+                mlines.append(currentLineText)
+
+    return mlines
 
 # https://codereview.stackexchange.com/questions/28207/finding-the-closest-point-to-a-list-of-points
 def getSortedIndicesByDistance(node, nodes):
