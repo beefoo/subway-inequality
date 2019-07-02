@@ -32,8 +32,7 @@ parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help
 parser.add_argument('-frame', dest="SINGLE_FRAME", default=-1, type=int, help="Output just a single frame")
 
 # Music config
-parser.add_argument('-gain', dest="GAIN_DB", type=float, default=-4.0, help="Gain to apply to each clip in decibels")
-parser.add_argument('-db', dest="MASTER_DB", type=float, default=0.0, help="Master +/- decibels to be applied to final audio")
+parser.add_argument('-db', dest="MASTER_DB", type=float, default=2.4, help="Master +/- decibels to be applied to final audio")
 parser.add_argument('-bpm', dest="BPM", type=int, default=120, help="Beats per minute, e.g. 60, 75, 100, 120, 150")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
 parser.add_argument('-dpb', dest="DIVISIONS_PER_BEAT", type=int, default=4, help="e.g. 4 = quarter notes, 8 = eighth notes")
@@ -226,7 +225,6 @@ def addBeatsToSequence(sequence, instrument, duration, ms, beat_ms, round_to, pa
             sequence.append({
                 'instrumentIndex': instrument["index"],
                 'filename': instrument["file"],
-                # 'gain': getGain(instrument, elapsed_beat) + a.GAIN_DB,
                 'volume': getVolume(instrument, elapsed_beat),
                 'ms': max([pad_start + elapsed_ms + variance, 0])
             })
