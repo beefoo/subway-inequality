@@ -228,6 +228,16 @@ def lim(value, ab=(0, 1)):
     a, b = ab
     return max(a, min(b, value))
 
+def logTime(startTime=None, label="Elapsed time"):
+    if startTime is False:
+        return False
+    now = time.time()
+    if startTime is not None:
+        secondsElapsed = now - startTime
+        timeStr = formatSeconds(secondsElapsed)
+        print("%s: %s" % (label, timeStr))
+    return now
+
 def makeDirectories(filenames):
     if not isinstance(filenames, list):
         filenames = [filenames]

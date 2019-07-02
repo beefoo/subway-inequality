@@ -57,6 +57,9 @@ parser.add_argument('-stm', dest="STATION_TEXT_MARGIN", type=int, default=20, he
 parser.add_argument('-slm', dest="STATION_LETTER_MARGIN", type=int, default=1, help="Space after each station text letter in pixels assuming 1920x1080")
 parser.add_argument('-bts', dest="BOROUGH_TEXT_SIZE", type=int, default=48, help="Borough text size in pixels assuming 1920x1080")
 parser.add_argument('-blm', dest="BOROUGH_LETTER_MARGIN", type=int, default=1, help="Space after each borough text letter in pixels assuming 1920x1080")
+parser.add_argument('-dw', dest="DIVIDER_WIDTH", type=int, default=28, help="Line divider in pixels assuming 1920x1080")
+parser.add_argument('-dd', dest="DIVIDER_DISTANCE", type=float, default=0.333, help="Distance between dividers as a percent of screen width")
+parser.add_argument('-dc', dest="DIVIDER_COLOR", default="#666666", help="Distance between dividers as a percent of screen width")
 parser.add_argument('-bg', dest="BG_COLOR", default="#000000", help="Background color")
 parser.add_argument('-tc', dest="TEXT_COLOR", default="#eeeeee", help="Text color")
 parser.add_argument('-atc', dest="ALT_TEXT_COLOR", default="#aaaaaa", help="Secondary text color")
@@ -68,8 +71,10 @@ parser.add_argument('-mcoord', dest="MAP_COORDS", default=" -74.1261,40.9087,-73
 parser.add_argument('-mapm', dest="MAP_MARGIN", type=int, default=30, help="Margin of map in pixels assuming 1920x1080")
 parser.add_argument('-mapw', dest="MAP_W", type=int, default=360, help="Map width in pixels assuming 1920x1080")
 parser.add_argument('-mlw', dest="MAP_LINE_WIDTH", type=int, default=4, help="Map line in pixels assuming 1920x1080")
-parser.add_argument('-mlc', dest="MAP_LINE_COLOR", default="#cccccc", help="Secondary text color")
+parser.add_argument('-mlc', dest="MAP_LINE_COLOR", default="#eeeeee", help="Secondary text color")
 a = parser.parse_args()
+
+startTime = logTime()
 
 # Calculations
 BEAT_MS = roundInt(60.0 / a.BPM * 1000)
@@ -276,6 +281,8 @@ aa["MAP_COORDS"] = tuple([float(c) for c in a.MAP_COORDS.strip().split(",")])
 aa["MAP_MARGIN"] = roundInt(a.MAP_MARGIN * RESOLUTION)
 aa["MAP_W"] = roundInt(a.MAP_W * RESOLUTION)
 aa["MAP_LINE_WIDTH"] = roundInt(a.MAP_LINE_WIDTH * RESOLUTION)
+aa["DIVIDER_WIDTH"] = roundInt(a.DIVIDER_WIDTH * RESOLUTION)
+aa["DIVIDER_DISTANCE"] = roundInt(1.0 * a.WIDTH * a.DIVIDER_DISTANCE)
 
 # Add borough names
 boroughNames = {
@@ -335,6 +342,9 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     y1 = y0 + a.LINE_HEIGHT
     draw.rectangle([(x0, y0), (x1, y1)], fill=a.ALT_TEXT_COLOR)
 
+    a.DIVIDER_WIDTH
+    a.DIVIDER_DISTANCE
+
     for i, s in enumerate(stations):
         # check to see if we should draw borough divider
         if s["borough"] != s["boroughNext"]:
@@ -344,7 +354,7 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
             if 0 <= bdx0 <= a.WIDTH or 0 <= bdx1 <= a.WIDTH:
                 dx0 = bdx - a.BOUNDARY_WIDTH/2
                 dx1 = dx0 + a.BOUNDARY_WIDTH
-                dy0 = cy - a.BOUNDARY_HEIGHT
+                dy0 = cy
                 dy1 = dy0 + a.BOUNDARY_HEIGHT
                 draw.rectangle([(dx0, dy0), (dx1, dy1)], fill=a.ALT_TEXT_COLOR)
                 blw, blh = getLineSize(fontBorough, s["borough"], a.BOROUGH_LETTER_MARGIN)
@@ -354,14 +364,27 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
                 bx = dx1 + a.BOUNDARY_MARGIN + blw/2
                 drawTextToImage(draw, s["boroughNext"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
 
+        sx = xOffset + s["x"]
+        sy = a.CENTER_Y
+
+        # draw dividers
+        if i < stationCount-1:
+            divX = sx + a.DIVIDER_DISTANCE
+            nextSx = xOffset + stations[i+1]["x"] - a.DIVIDER_DISTANCE
+            while divX < a.WIDTH + a.DIVIDER_WIDTH and divX < nextSx:
+                divX0 = divX - a.DIVIDER_WIDTH/2
+                divX1 = divX0 + a.DIVIDER_WIDTH
+                divY0 = y0
+                divY1 = y1
+                if divX1 > 0:
+                    draw.rectangle([(divX0, divY0), (divX1, divY1)], fill=a.DIVIDER_COLOR)
+                divX += a.DIVIDER_DISTANCE
+
         # check if station is visible
         sx0 = xOffset + s["x0"]
         sx1 = xOffset + s["x1"]
         if not (0 <= sx0 <= a.WIDTH or 0 <= sx1 <= a.WIDTH):
             continue
-
-        sx = xOffset + s["x"]
-        sy = a.CENTER_Y
 
         # draw borough text
         bx = sx
@@ -389,13 +412,13 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     allPoints = []
     for i, s in enumerate(stations):
         sms0 = s["ms"]
-        sms1 = ms + s["duration"]
-        mprogress = norm(ms, (sms0, sms1)) if s["duration"] > 0 else 1.0
+        sms1 = sms0 + s["duration"]
+        mprogress = norm(ms, (sms0, sms1), limit=True) if s["duration"] > 0 else 1.0
         lx = lerp((mx, mx+mw), s["mapNx"])
         ly = lerp((my, my+mh), s["mapNy"])
         if ms >= sms0:
             points.append((lx, ly))
-        if mprogress < 1.0 and i < stationCount-1 and s["duration"] > 0:
+        if 0.0 < mprogress < 1.0 and i < stationCount-1 and s["duration"] > 0:
             lx1 = lerp((mx, mx+mw), stations[i+1]["mapNx"])
             ly1 = lerp((my, my+mh), stations[i+1]["mapNy"])
             lx2 = lerp((lx, lx1), mprogress)
@@ -495,6 +518,7 @@ if not a.AUDIO_ONLY:
         printProgress(frame, totalFrames)
     #     break
 
+stepTime = logTime(startTime, "Finished frames")
 padZeros = len(str(totalFrames))
 outfile = a.OUTPUT_FILE % basename
 frameInfile = a.OUTPUT_FRAME % (basename, '%s')
@@ -508,4 +532,6 @@ if a.OVERWRITE or not os.path.isfile(audioFilename):
 else:
     print("%s already exists" % audioFilename)
 
+stepTime = logTime(stepTime, "Finished Audio")
 compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)
+logTime(startTime, "Total execution time")
