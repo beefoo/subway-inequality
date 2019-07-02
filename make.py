@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-# import gizeh
+import gizeh
 import os
 from PIL import Image, ImageDraw, ImageFont
 from pprint import pprint
@@ -402,9 +402,17 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
             ly2 = lerp((ly, ly1), mprogress)
             points.append((lx2, ly2))
         allPoints.append((lx, ly))
-    draw.line(allPoints, fill=a.MAP_LINE_COLOR, width=max(1, a.MAP_LINE_WIDTH-1))
+
+    # Draw line using gizeh so it will be smooth
+    surface = gizeh.Surface(width=a.WIDTH, height=a.HEIGHT)
+    line = gizeh.polyline(points=allPoints, stroke_width=max(1, a.MAP_LINE_WIDTH-1), stroke=hexToRGB(a.MAP_LINE_COLOR, toFloat=True))
+    line.draw(surface)
     if len(points) > 1:
-        draw.line(points, fill=lineColor, width=a.MAP_LINE_WIDTH)
+        sline = gizeh.polyline(points=points, stroke_width=a.MAP_LINE_WIDTH, stroke=hexToRGB(lineColor, toFloat=True))
+        sline.draw(surface)
+    spixels = surface.get_npimage(transparent=True) # should be shape: h, w, rgba
+    lineImage = Image.fromarray(spixels, mode="RGBA")
+    im.paste(lineImage, (0, 0), lineImage)
 
     # draw the marker
     x0 = cx - a.MARKER_WIDTH/2

@@ -206,6 +206,13 @@ def getSortedIndicesByDistance(node, nodes):
     dist_2 = np.einsum('ij,ij->i', deltas, deltas)
     return (dist_2, np.argsort(dist_2))
 
+def hexToRGB(hex, toFloat=False):
+    hex = hex.lstrip('#')
+    rgb = [int(hex[i:i+2], 16) for i in [0, 2, 4]]
+    if toFloat:
+        rgb = [1.0*c/255.0 for c in rgb]
+    return tuple(rgb)
+
 def isNumber(value):
     try:
         num = float(value)
