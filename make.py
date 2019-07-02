@@ -17,8 +17,8 @@ parser.add_argument('-instruments', dest="INSTRUMENTS_FILE", default="data/instr
 parser.add_argument('-dir', dest="MEDIA_DIRECTORY", default="audio/", help="Input media directory")
 parser.add_argument('-width', dest="WIDTH", default=1920, type=int, help="Output video width")
 parser.add_argument('-height', dest="HEIGHT", default=1080, type=int, help="Output video height")
-parser.add_argument('-pad0', dest="PAD_START", default=2000, type=int, help="Pad start in ms")
-parser.add_argument('-pad1', dest="PAD_END", default=4000, type=int, help="Pad end in ms")
+parser.add_argument('-pad0', dest="PAD_START", default=1000, type=int, help="Pad start in ms")
+parser.add_argument('-pad1', dest="PAD_END", default=1000, type=int, help="Pad end in ms")
 parser.add_argument('-fps', dest="FPS", default=60, type=int, help="Output video frames per second")
 parser.add_argument('-outframe', dest="OUTPUT_FRAME", default="tmp/line_%s/frame.%s.png", help="Output frames pattern")
 parser.add_argument('-aout', dest="AUDIO_OUTPUT_FILE", default="output/subway_line_%s.mp3", help="Output audio file")
@@ -26,6 +26,7 @@ parser.add_argument('-out', dest="OUTPUT_FILE", default="output/subway_line_%s.m
 parser.add_argument('-overwrite', dest="OVERWRITE", action="store_true", help="Overwrite existing files?")
 parser.add_argument('-probe', dest="PROBE", action="store_true", help="Just view statistics?")
 parser.add_argument('-reverse', dest="REVERSE", action="store_true", help="Reverse the line?")
+parser.add_argument('-rtl', dest="RIGHT_TO_LEFT", action="store_true", help="Play from right to left?")
 parser.add_argument('-ao', dest="AUDIO_ONLY", action="store_true", help="Only output audio?")
 parser.add_argument('-vo', dest="VIDEO_ONLY", action="store_true", help="Only output video?")
 parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help="Output a visualization of the sequence")
@@ -41,7 +42,7 @@ parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/-
 
 # Visual design config
 parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.25, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
-parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.25, help="Station text width as a percent of the screen width")
+parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.3, help="Station text width as a percent of the screen width")
 parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.45, help="Center y as a percent of screen height")
 parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
 parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.3, help="Station text center y as a percent of screen height")
@@ -115,7 +116,10 @@ def buyInstruments(station, instrumentsShelf):
 stations = sorted(stations, key=lambda d: d["income"])
 stations = addNormalizedValues(stations, "income", "nIncome")
 stations = addIndices(stations, "incomeIndex")
-stations = sorted(stations, key=lambda d: d["sortBy"], reverse=a.REVERSE)
+isReverse = a.REVERSE
+if a.RIGHT_TO_LEFT:
+    isReverse = (not isReverse)
+stations = sorted(stations, key=lambda d: d["sortBy"], reverse=isReverse)
 stations = addIndices(stations, "index")
 stationCount = len(stations)
 ms = a.PAD_START
@@ -133,6 +137,7 @@ for i, station in enumerate(stations):
     stations[i]["distance"] = distance
     stations[i]["beats"] = beats
     stations[i]["duration"] = duration
+    stations[i]["vduration"] = duration
     stations[i]["BoroughNext"] = boroughNext
     stations[i]["ms"] = ms
     ms += duration
@@ -295,18 +300,29 @@ for i, station in enumerate(stations):
 
 x = 0
 mlon0, mlat0, mlon1, mlat1 = a.MAP_COORDS
-for i, station in enumerate(stations):
+vstations = stations[:]
+
+# If going right to left, reverse the stations visually
+if a.RIGHT_TO_LEFT:
+    vstations = list(reversed(vstations))
+    for i, station in enumerate(vstations):
+        if i < stationCount-1:
+            vstations[i]["vduration"] = vstations[i+1]["duration"]
+        else:
+            vstations[i]["vduration"] = 0
+
+for i, station in enumerate(vstations):
     boroughNext = station["borough"]
     if i < stationCount-1:
-        boroughNext = stations[i+1]["borough"]
-    stations[i]["boroughNext"] = boroughNext
-    stations[i]["width"] = roundInt(1.0 * station["duration"] / minDuration * a.STATION_WIDTH)
-    stations[i]["x"] = x
-    stations[i]["x0"] = x - a.TEXT_WIDTH / 2
-    stations[i]["x1"] = x + a.TEXT_WIDTH / 2
-    stations[i]["mapNx"] = norm(station["GTFS Longitude"], (mlon0, mlon1))
-    stations[i]["mapNy"] = norm(station["GTFS Latitude"], (mlat0, mlat1))
-    x += stations[i]["width"]
+        boroughNext = vstations[i+1]["borough"]
+    vstations[i]["boroughNext"] = boroughNext
+    vstations[i]["width"] = roundInt(1.0 * station["vduration"] / minDuration * a.STATION_WIDTH)
+    vstations[i]["x"] = x
+    vstations[i]["x0"] = x - a.TEXT_WIDTH / 2
+    vstations[i]["x1"] = x + a.TEXT_WIDTH / 2
+    vstations[i]["mapNx"] = norm(station["GTFS Longitude"], (mlon0, mlon1))
+    vstations[i]["mapNy"] = norm(station["GTFS Latitude"], (mlat0, mlat1))
+    x += vstations[i]["width"]
 totalW = x
 pxPerMs = 1.0 * totalW / totalMs
 pxPerS = pxPerMs * 1000.0
@@ -317,8 +333,11 @@ print("Pixels per frame: %s" % pxPerFrame)
 
 totalFrames = msToFrame(sequenceDuration, a.FPS)
 totalFrames = int(ceilToNearest(totalFrames, a.FPS))
+print("Total frames: %s" % totalFrames)
 sequenceDuration = frameToMs(totalFrames, a.FPS)
 basename = getBasename(a.DATA_FILE)
+if a.RIGHT_TO_LEFT:
+    basename += "_rtl"
 
 def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a):
     if not a.OVERWRITE and os.path.isfile(filename):
@@ -411,17 +430,21 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     lineColor = "#"+stations[0]["color"]
     points = []
     allPoints = []
-    for i, s in enumerate(stations):
+    mstations = stations[:]
+    if a.RIGHT_TO_LEFT:
+        mstations = list(reversed(mstations))
+    for i, s in enumerate(mstations):
         sms0 = s["ms"]
         sms1 = sms0 + s["duration"]
+        # print("%s, %s" % (sms0, sms1))
         mprogress = norm(ms, (sms0, sms1), limit=True) if s["duration"] > 0 else 1.0
         lx = lerp((mx, mx+mw), s["mapNx"])
         ly = lerp((my, my+mh), s["mapNy"])
         if ms >= sms0:
             points.append((lx, ly))
         if 0.0 < mprogress < 1.0 and i < stationCount-1 and s["duration"] > 0:
-            lx1 = lerp((mx, mx+mw), stations[i+1]["mapNx"])
-            ly1 = lerp((my, my+mh), stations[i+1]["mapNy"])
+            lx1 = lerp((mx, mx+mw), mstations[i+1]["mapNx"])
+            ly1 = lerp((my, my+mh), mstations[i+1]["mapNy"])
             lx2 = lerp((lx, lx1), mprogress)
             ly2 = lerp((ly, ly1), mprogress)
             points.append((lx2, ly2))
@@ -498,7 +521,9 @@ if not a.AUDIO_ONLY:
         ms = lim(frameToMs(a.SINGLE_FRAME, a.FPS) - a.PAD_START, (0, totalMs))
         frames = msToFrame(ms, a.FPS)
         xOffset = roundInt(a.WIDTH * 0.5) - pxPerFrame * frames
-        drawFrame("output/frame.png", ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
+        if a.RIGHT_TO_LEFT:
+            xOffset = roundInt(a.WIDTH * 0.5) - totalW + pxPerFrame * frames
+        drawFrame("output/frame.png", ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
         sys.exit()
 
     if a.OVERWRITE:
@@ -507,14 +532,18 @@ if not a.AUDIO_ONLY:
     print("Making video frame sequence...")
     videoFrames = []
     xOffset = roundInt(a.WIDTH * 0.5)
+    direction = -1
+    if a.RIGHT_TO_LEFT:
+        direction = 1
+        xOffset -= totalW
     for f in range(totalFrames):
         frame = f + 1
         ms = frameToMs(frame, a.FPS)
         frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
-        drawFrame(frameFilename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
+        drawFrame(frameFilename, ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
 
         if a.PAD_START <= ms < (a.PAD_START+totalMs):
-            xOffset -= pxPerFrame
+            xOffset += (direction * pxPerFrame)
 
         printProgress(frame, totalFrames)
     #     break
