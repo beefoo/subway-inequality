@@ -40,8 +40,8 @@ parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.14, he
 parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/- milliseconds an instrument note should be off by to give it a little more 'natural' feel")
 
 # Visual design config
-parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.3125, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
-parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.333, help="Station text width as a percent of the screen width")
+parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.25, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
+parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.25, help="Station text width as a percent of the screen width")
 parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.45, help="Center y as a percent of screen height")
 parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
 parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.3, help="Station text center y as a percent of screen height")
@@ -340,9 +340,6 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     y1 = y0 + a.LINE_HEIGHT
     draw.rectangle([(x0, y0), (x1, y1)], fill=a.ALT_TEXT_COLOR)
 
-    a.DIVIDER_WIDTH
-    a.DIVIDER_DISTANCE
-
     for i, s in enumerate(stations):
         # check to see if we should draw borough divider
         if s["borough"] != s["boroughNext"]:
@@ -367,16 +364,22 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
 
         # draw dividers
         if i < stationCount-1:
-            divX = sx + a.DIVIDER_DISTANCE
-            nextSx = xOffset + stations[i+1]["x"] - a.DIVIDER_DISTANCE
-            while divX < a.WIDTH + a.DIVIDER_WIDTH and divX < nextSx:
+            dividers = 0
+            dividerDistance = 0
+            nextSx = xOffset + stations[i+1]["x"]
+            deltaSx = abs(nextSx - sx)
+            if deltaSx >= a.DIVIDER_DISTANCE * 2:
+                dividers = int(1.0 * deltaSx / a.DIVIDER_DISTANCE) - 1
+            if dividers > 0:
+                dividerDistance = roundInt(1.0 * deltaSx / (dividers+1))
+            for di in range(dividers):
+                divX = sx + (di+1) * dividerDistance
                 divX0 = divX - a.DIVIDER_WIDTH/2
                 divX1 = divX0 + a.DIVIDER_WIDTH
                 divY0 = y0
                 divY1 = y1
                 if divX1 > 0:
                     draw.rectangle([(divX0, divY0), (divX1, divY1)], fill=a.DIVIDER_COLOR)
-                divX += a.DIVIDER_DISTANCE
 
         # check if station is visible
         sx0 = xOffset + s["x0"]
