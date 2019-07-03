@@ -2,10 +2,13 @@
 
 # python3 make.py -overwrite
 # python3 make.py -rtl -overwrite
+# python3 combine.py
 # python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -overwrite
 # python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -rtl -overwrite
-# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -reverse -overwrite
-# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -reverse -rtl -overwrite
+# python3 combine.py -in "output/subway_line_A_LEF.mp4,output/subway_line_A_LEF_rtl.mp4" -out "output/subway_line_A_loop.mp4"
+# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -overwrite
+# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -rtl -overwrite
+# python3 combine.py -in "output/subway_line_7.mp4,output/subway_line_7_rtl.mp4" -out "output/subway_line_7_loop.mp4"
 
 import argparse
 import gizeh
@@ -40,7 +43,7 @@ parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help
 parser.add_argument('-frame', dest="SINGLE_FRAME", default=-1, type=int, help="Output just a single frame")
 
 # Music config
-parser.add_argument('-db', dest="MASTER_DB", type=float, default=2.4, help="Master +/- decibels to be applied to final audio")
+parser.add_argument('-db', dest="MASTER_DB", type=float, default=1.2, help="Master +/- decibels to be applied to final audio")
 parser.add_argument('-bpm', dest="BPM", type=int, default=120, help="Beats per minute, e.g. 60, 75, 100, 120, 150")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
 parser.add_argument('-dpb', dest="DIVISIONS_PER_BEAT", type=int, default=4, help="e.g. 4 = quarter notes, 8 = eighth notes")
