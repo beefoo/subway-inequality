@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+# python3 make.py -overwrite
+# python3 make.py -rtl -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -rtl -overwrite
+# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -reverse -overwrite
+# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -reverse -rtl -overwrite
+
 import argparse
 import gizeh
 import os
@@ -37,15 +44,15 @@ parser.add_argument('-db', dest="MASTER_DB", type=float, default=2.4, help="Mast
 parser.add_argument('-bpm', dest="BPM", type=int, default=120, help="Beats per minute, e.g. 60, 75, 100, 120, 150")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
 parser.add_argument('-dpb', dest="DIVISIONS_PER_BEAT", type=int, default=4, help="e.g. 4 = quarter notes, 8 = eighth notes")
-parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.14, help="Makes instruments more expensive; higher numbers = less instruments playing")
+parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.167, help="Makes instruments more expensive; higher numbers = less instruments playing")
 parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/- milliseconds an instrument note should be off by to give it a little more 'natural' feel")
 
 # Visual design config
 parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.25, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
 parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.3, help="Station text width as a percent of the screen width")
-parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.45, help="Center y as a percent of screen height")
-parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
-parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.3, help="Station text center y as a percent of screen height")
+parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.475, help="Center y as a percent of screen height")
+parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.575, help="Borough text center y as a percent of screen height")
+parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.325, help="Station text center y as a percent of screen height")
 parser.add_argument('-cw', dest="CIRCLE_WIDTH", type=int, default=90, help="Circle radius in pixels assuming 1920x1080")
 parser.add_argument('-lh', dest="LINE_HEIGHT", type=int, default=28, help="Height of horizontal line in pixels assuming 1920x1080")
 parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=166, help="Height of boundary line in pixels assuming 1920x1080")
@@ -69,7 +76,7 @@ parser.add_argument('-bfont', dest="BOROUGH_FONT", default="fonts/OpenSans-SemiB
 parser.add_argument('-map', dest="MAP_IMAGE", default="img/nyc.png", help="Station font")
 parser.add_argument('-mcoord', dest="MAP_COORDS", default=" -74.1261,40.9087,-73.7066,40.5743", help="Top left, bottom right point")
 parser.add_argument('-mapm', dest="MAP_MARGIN", type=int, default=30, help="Margin of map in pixels assuming 1920x1080")
-parser.add_argument('-mapw', dest="MAP_W", type=int, default=360, help="Map width in pixels assuming 1920x1080")
+parser.add_argument('-mapw', dest="MAP_W", type=int, default=260, help="Map width in pixels assuming 1920x1080")
 parser.add_argument('-mlw', dest="MAP_LINE_WIDTH", type=int, default=4, help="Map line in pixels assuming 1920x1080")
 parser.add_argument('-mlc', dest="MAP_LINE_COLOR", default="#eeeeee", help="Secondary text color")
 a = parser.parse_args()
