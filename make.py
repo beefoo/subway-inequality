@@ -3,8 +3,8 @@
 # python3 make.py -overwrite
 # python3 make.py -rtl -overwrite
 # python3 combine.py
-# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -overwrite
-# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -rtl -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -rtl -overwrite
 # python3 combine.py -in "output/subway_line_A_LEF.mp4,output/subway_line_A_LEF_rtl.mp4" -out "output/subway_line_A_loop.mp4"
 # python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -overwrite
 # python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -rtl -overwrite
@@ -372,21 +372,24 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     for i, s in enumerate(stations):
         # check to see if we should draw borough divider
         if s["borough"] != s["boroughNext"]:
-            bdx = roundInt(xOffset + (s["x"] + stations[i+1]["x"]) * 0.5)
-            bdx0 = bdx - a.WIDTH/2
-            bdx1 = bdx + a.WIDTH/2
-            if 0 <= bdx0 <= a.WIDTH or 0 <= bdx1 <= a.WIDTH:
-                dx0 = bdx - a.BOUNDARY_WIDTH/2
-                dx1 = dx0 + a.BOUNDARY_WIDTH
-                dy0 = cy
-                dy1 = dy0 + a.BOUNDARY_HEIGHT
-                draw.rectangle([(dx0, dy0), (dx1, dy1)], fill=a.ALT_TEXT_COLOR)
-                blw, blh = getLineSize(fontBorough, s["borough"], a.BOROUGH_LETTER_MARGIN)
-                bx = dx0 - a.BOUNDARY_MARGIN - blw/2
-                drawTextToImage(draw, s["borough"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
-                blw, blh = getLineSize(fontBorough, s["boroughNext"], a.BOROUGH_LETTER_MARGIN)
-                bx = dx1 + a.BOUNDARY_MARGIN + blw/2
-                drawTextToImage(draw, s["boroughNext"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
+            deltaBx = abs(stations[i+1]["x"]-s["x"])
+            # don't draw boundary in tight space
+            if deltaBx > (a.WIDTH * 0.75):
+                bdx = roundInt(xOffset + (s["x"] + stations[i+1]["x"]) * 0.5)
+                bdx0 = bdx - a.WIDTH/2
+                bdx1 = bdx + a.WIDTH/2
+                if 0 <= bdx0 <= a.WIDTH or 0 <= bdx1 <= a.WIDTH:
+                    dx0 = bdx - a.BOUNDARY_WIDTH/2
+                    dx1 = dx0 + a.BOUNDARY_WIDTH
+                    dy0 = cy
+                    dy1 = dy0 + a.BOUNDARY_HEIGHT
+                    draw.rectangle([(dx0, dy0), (dx1, dy1)], fill=a.ALT_TEXT_COLOR)
+                    blw, blh = getLineSize(fontBorough, s["borough"], a.BOROUGH_LETTER_MARGIN)
+                    bx = dx0 - a.BOUNDARY_MARGIN - blw/2
+                    drawTextToImage(draw, s["borough"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
+                    blw, blh = getLineSize(fontBorough, s["boroughNext"], a.BOROUGH_LETTER_MARGIN)
+                    bx = dx1 + a.BOUNDARY_MARGIN + blw/2
+                    drawTextToImage(draw, s["boroughNext"], fontBorough, a.BOROUGH_LETTER_MARGIN, bx, a.BOROUGH_TEXT_Y, a.ALT_TEXT_COLOR)
 
         sx = xOffset + s["x"]
         sy = a.CENTER_Y

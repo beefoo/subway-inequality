@@ -172,7 +172,7 @@ Sort,Station ID,Complex ID,GTFS Stop ID,Division,Line,Stop Name,Borough,Daytime 
 171,172,628,A38,IND,8th Av - Fulton St,Fulton St,M,A C,Subway,40.710197,-74.007691
 172,173,173,A40,IND,8th Av - Fulton St,High St,Bk,A C,Subway,40.699337,-73.990531
 173,174,636,A41,IND,8th Av - Fulton St,Jay St - MetroTech,Bk,A C F,Subway,40.692338,-73.987342
-174,175,175,A42,IND,8th Av - Fulton St,Hoyt - Schermerhorn Sts,Bk,A C G,Subway,40.688484,-73.985001
+174,175,175,A42,IND,8th Av - Fulton St,Hoyt - Schermerhorn,Bk,A C G,Subway,40.688484,-73.985001
 175,176,176,A43,IND,8th Av - Fulton St,Lafayette Av,Bk,C,Subway,40.686113,-73.973946
 176,177,177,A44,IND,8th Av - Fulton St,Clinton - Washington Avs,Bk,C,Subway,40.683263,-73.965838
 177,178,627,A45,IND,8th Av - Fulton St,Franklin Av,Bk,C,Subway,40.68138,-73.956848
