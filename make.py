@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# python3 make.py -overwrite
-# python3 make.py -rtl -overwrite
+# python3 make.py -loc "data/lines/1.csv" -overwrite
+# python3 make.py -loc "data/lines/1.csv" -rtl -overwrite
 # python3 combine.py
 # python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -overwrite
 # python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -rtl -overwrite
@@ -22,6 +22,7 @@ from lib import *
 # input
 parser = argparse.ArgumentParser()
 parser.add_argument('-data', dest="DATA_FILE", default="data/lines/2.csv", help="Input csv file with preprocessed data")
+parser.add_argument('-loc', dest="DATA_LOCAL_FILE", default="", help="Input csv file with preprocessed data of a local train that should 'fill in' stations in-between express trains")
 parser.add_argument('-img', dest="IMAGE_FILE", default="img/2.png", help="Subway bullet image")
 parser.add_argument('-instruments', dest="INSTRUMENTS_FILE", default="data/instruments.csv", help="Input csv file with instruments config")
 parser.add_argument('-dir', dest="MEDIA_DIRECTORY", default="audio/", help="Input media directory")
@@ -47,7 +48,7 @@ parser.add_argument('-db', dest="MASTER_DB", type=float, default=1.2, help="Mast
 parser.add_argument('-bpm', dest="BPM", type=int, default=120, help="Beats per minute, e.g. 60, 75, 100, 120, 150")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
 parser.add_argument('-dpb', dest="DIVISIONS_PER_BEAT", type=int, default=4, help="e.g. 4 = quarter notes, 8 = eighth notes")
-parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.167, help="Makes instruments more expensive; higher numbers = less instruments playing")
+parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.3, help="Makes instruments more expensive; higher numbers = less instruments playing")
 parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/- milliseconds an instrument note should be off by to give it a little more 'natural' feel")
 
 # Visual design config
@@ -90,9 +91,18 @@ startTime = logTime()
 BEAT_MS = roundInt(60.0 / a.BPM * 1000)
 ROUND_TO_NEAREST = roundInt(1.0 * BEAT_MS / a.DIVISIONS_PER_BEAT)
 
+basename = getBasename(a.DATA_FILE)
+if "_" in basename:
+    basename, _ = tuple(basename.split("_"))
+if a.RIGHT_TO_LEFT:
+    basename += "_rtl"
+
 # Read data
 _, stations = readCsv(a.DATA_FILE)
 _, instruments = readCsv(a.INSTRUMENTS_FILE)
+lstations = []
+if len(a.DATA_LOCAL_FILE):
+    _, lstations = readCsv(a.DATA_LOCAL_FILE)
 
 # Parse instruments
 instruments = prependAll(instruments, ("file", a.MEDIA_DIRECTORY))
@@ -121,6 +131,31 @@ def buyInstruments(station, instrumentsShelf):
         else:
             break
     return instrumentsCart
+
+# Add local stations in-between express ones
+if len(lstations) > 0:
+    lbasename = getBasename(a.DATA_LOCAL_FILE)
+    estations = {}
+    addStations = []
+    for i, s in enumerate(stations):
+        lines = str(s["Daytime Routes"]).split(" ")
+        if lbasename in lines:
+            estations[s["Station ID"]] = s.copy()
+    sortByStart = None
+    currentLStations = []
+    for i, s in enumerate(lstations):
+        if s["Station ID"] in estations:
+            if sortByStart is not None and len(currentLStations) > 0:
+                step = 1.0 / (len(currentLStations) + 1)
+                for j, ls in enumerate(currentLStations):
+                    currentLStations[j]["sortBy"] = sortByStart + (j+1) * step
+                    currentLStations[j]["isLocal"] = True
+                addStations += currentLStations
+                currentLStations = []
+            sortByStart = estations[s["Station ID"]]["sortBy"]
+        elif sortByStart is not None:
+            currentLStations.append(s)
+    stations += addStations
 
 # Parse stations
 stations = sorted(stations, key=lambda d: d["income"])
@@ -345,9 +380,6 @@ totalFrames = msToFrame(sequenceDuration, a.FPS)
 totalFrames = int(ceilToNearest(totalFrames, a.FPS))
 print("Total frames: %s" % totalFrames)
 sequenceDuration = frameToMs(totalFrames, a.FPS)
-basename = getBasename(a.DATA_FILE)
-if a.RIGHT_TO_LEFT:
-    basename += "_rtl"
 
 def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontStation, fontBorough, a):
     if not a.OVERWRITE and os.path.isfile(filename):
@@ -417,6 +449,20 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
         sx0 = xOffset + s["x0"]
         sx1 = xOffset + s["x1"]
         if not (0 <= sx0 <= a.WIDTH or 0 <= sx1 <= a.WIDTH):
+            continue
+
+        # just draw empty bullet for local stops
+        if "isLocal" in s:
+            brad = roundInt(a.CIRCLE_WIDTH/3)
+            bx = sx
+            by = sy
+            # Draw line using gizeh so it will be smooth
+            bsurface = gizeh.Surface(width=a.WIDTH, height=a.HEIGHT)
+            circle = gizeh.circle(r=brad, xy=[bx, by], fill=hexToRGB(a.DIVIDER_COLOR, toFloat=True))
+            circle.draw(bsurface)
+            bpixels = bsurface.get_npimage(transparent=True) # should be shape: h, w, rgba
+            circleImg = Image.fromarray(bpixels, mode="RGBA")
+            im.paste(circleImg, (0, 0), circleImg)
             continue
 
         # draw borough text
