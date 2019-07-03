@@ -12,6 +12,7 @@
 
 import argparse
 import gizeh
+import numpy as np
 import os
 from PIL import Image, ImageDraw, ImageFont
 from pprint import pprint
@@ -28,8 +29,8 @@ parser.add_argument('-instruments', dest="INSTRUMENTS_FILE", default="data/instr
 parser.add_argument('-dir', dest="MEDIA_DIRECTORY", default="audio/", help="Input media directory")
 parser.add_argument('-width', dest="WIDTH", default=1920, type=int, help="Output video width")
 parser.add_argument('-height', dest="HEIGHT", default=1080, type=int, help="Output video height")
-parser.add_argument('-pad0', dest="PAD_START", default=1000, type=int, help="Pad start in ms")
-parser.add_argument('-pad1', dest="PAD_END", default=1000, type=int, help="Pad end in ms")
+parser.add_argument('-pad0', dest="PAD_START", default=2000, type=int, help="Pad start in ms")
+parser.add_argument('-pad1', dest="PAD_END", default=2000, type=int, help="Pad end in ms")
 parser.add_argument('-fps', dest="FPS", default=60, type=int, help="Output video frames per second")
 parser.add_argument('-outframe', dest="OUTPUT_FRAME", default="tmp/line_%s/frame.%s.png", help="Output frames pattern")
 parser.add_argument('-aout', dest="AUDIO_OUTPUT_FILE", default="output/subway_line_%s.mp3", help="Output audio file")
@@ -208,7 +209,7 @@ print('Main sequence beats: %s' % totalBeats)
 def getVolume(instrument, beat):
     beats_per_phase = instrument['gain_phase']
     percent_complete = float(beat % beats_per_phase) / beats_per_phase
-    percent = ease(percent_complete)
+    percent = easeSin(percent_complete)
     from_volume = instrument['from_volume']
     to_volume = instrument['to_volume']
     volume = lerp((from_volume, to_volume), percent)
@@ -220,7 +221,7 @@ def getBeatMs(instrument, beat, round_to):
     to_beat_ms = instrument['to_beat_ms']
     beats_per_phase = instrument['tempo_phase']
     percent_complete = float(beat % beats_per_phase) / beats_per_phase
-    percent = ease(percent_complete)
+    percent = easeSin(percent_complete)
     ms = lerp((from_beat_ms, to_beat_ms), percent)
     ms = roundInt(roundToNearest(ms, round_to))
     return ms
@@ -531,6 +532,38 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     im.save(filename)
     # print("Saved %s" % filename)
 
+def getEasedFrames(easeFrameCount, stationFrameCount, pxPerFrame):
+    fromFrameCount = int(min(easeFrameCount, stationFrameCount) / 2)
+    fromPx = fromFrameCount * pxPerFrame
+    toFrameCount = easeFrameCount + fromFrameCount # 'fromPx' will be stretched into 'toFrameCount' frames
+    easedPoints = [easeIn(n) * pxPerFrame for n in np.linspace(0, 1.0, num=toFrameCount)]
+    buckets = [0 for n in range(toFrameCount)]
+    pxPool = fromPx
+    for i in range(toFrameCount):
+        index = toFrameCount-1-i
+        bucketPx = buckets[index]
+        addPx = easedPoints[index]
+        if addPx > pxPool:
+            addPx = pxPool
+        buckets[index] = addPx
+        pxPool -= addPx
+        if pxPool <= 0:
+            break
+    if pxPool > 0:
+        incr = 0.01
+        while pxPool > 0:
+            for j in range(toFrameCount):
+                index = toFrameCount-1-j
+                bucketPx = buckets[index]
+                if (bucketPx+incr) <= pxPerFrame:
+                    buckets[index] += incr
+                    pxPool -= incr
+    # import matplotlib.pyplot as plt
+    # plt.plot(buckets)
+    # plt.show()
+    # sys.exit()
+    return buckets
+
 audioFilename = a.AUDIO_OUTPUT_FILE % basename
 print("%s steps in sequence" % len(sequence))
 print('Total sequence time: %s' % formatSeconds(sequenceDuration/1000.0))
@@ -588,22 +621,48 @@ if not a.AUDIO_ONLY:
     if a.OVERWRITE:
         removeFiles(a.OUTPUT_FRAME % (basename, "*"))
 
+    # calculations for easing in/out
+    padFrameInCount = msToFrame(a.PAD_START, a.FPS)
+    station0FrameCount = msToFrame(stations[0]["duration"], a.FPS)
+    easeInFrames = getEasedFrames(padFrameInCount, station0FrameCount, pxPerFrame)
+    easeInFrameCount = len(easeInFrames)
+    padFrameOutCount = msToFrame(a.PAD_END, a.FPS)
+    station1FrameCount = msToFrame(stations[-2]["duration"], a.FPS)
+    easeOutFrames = getEasedFrames(padFrameOutCount, station1FrameCount, pxPerFrame)
+    # easeOutFrames = list(reversed(easeOutFrames))
+    easeOutFrameCount = len(easeOutFrames)
+
     print("Making video frame sequence...")
     videoFrames = []
-    xOffset = roundInt(a.WIDTH * 0.5)
+    centerX = roundInt(a.WIDTH * 0.5)
+    xOffset = centerX
     direction = -1
     if a.RIGHT_TO_LEFT:
         direction = 1
         xOffset -= totalW
+    xOffsetF = 1.0 * xOffset
     for f in range(totalFrames):
         frame = f + 1
         ms = frameToMs(frame, a.FPS)
         frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
         drawFrame(frameFilename, ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
 
-        if a.PAD_START <= ms < (a.PAD_START+totalMs):
+        # ease in start
+        if frame < easeInFrameCount:
+            xOffsetF += (direction * easeInFrames[frame-1])
+            xOffset = roundInt(xOffsetF)
+        # # correct any discrepancy after ease in
+        # elif frame <= easeInFrameCount:
+        #     xOffset = (frame - padFrameInCount) * pxPerFrame
+        #     xOffsetF = 1.0 * xOffset
+        # ease out end
+        elif (totalFrames-frame) <= easeOutFrameCount:
+            xOffsetF += (direction * easeOutFrames[totalFrames-frame])
+            xOffset = roundInt(xOffsetF)
+        else:
             xOffset += (direction * pxPerFrame)
-
+            xOffsetF = 1.0 * xOffset
+        xOffset = lim(xOffset, (centerX-totalW, centerX))
         printProgress(frame, totalFrames)
     #     break
 

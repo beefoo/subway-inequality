@@ -106,7 +106,14 @@ def earthDistance(lat1, lng1, lat2, lng2):
     dist = earthRadius * c
     return dist
 
-def ease(value):
+def easeIn(n, exp=3):
+    return n ** exp
+
+def easeInOut(n):
+    # return (math.sin((n+1.5)*math.pi)+1.0) / 2.0
+    return 4.0 * (n ** 3) if n < 0.5 else (n-1.0)*(2*n-2)*(2*n-2)+1
+
+def easeSin(value):
     eased = math.sin(value * math.pi)
     # eased = (math.sin((value+1.5)*math.pi)+1.0) / 2.0
     eased = lim(eased)
