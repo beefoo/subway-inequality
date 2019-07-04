@@ -569,6 +569,7 @@ def getEasedFrames(easeFrameCount, stationFrameCount, pxPerFrame):
     # plt.plot(buckets)
     # plt.show()
     # sys.exit()
+    # print("%s ~ %s" % (fromPx, sum(buckets)))
     return buckets
 
 audioFilename = a.AUDIO_OUTPUT_FILE % basename
@@ -629,6 +630,7 @@ if not a.AUDIO_ONLY:
     easeOutFrames = getEasedFrames(padFrameOutCount, station1FrameCount, pxPerFrame)
     # easeOutFrames = list(reversed(easeOutFrames))
     easeOutFrameCount = len(easeOutFrames)
+    easeOutPixels = roundInt(sum(easeOutFrames))
 
     print("Making video frame sequence...")
     videoFrames = []
@@ -639,6 +641,7 @@ if not a.AUDIO_ONLY:
         direction = 1
         xOffset -= totalW
     xOffsetF = 1.0 * xOffset
+    target = centerX-totalW if direction < 0 else centerX
     for f in range(totalFrames):
         frame = f + 1
         ms = frameToMs(frame, a.FPS)
@@ -651,18 +654,23 @@ if not a.AUDIO_ONLY:
             if a.SINGLE_FRAME > 0:
                 sys.exit()
 
+        pixelsLeft = abs(target - xOffset)
+
         # ease in start
         if frame < easeInFrameCount:
             xOffsetF += (direction * easeInFrames[frame-1])
             xOffset = roundInt(xOffsetF)
+            # print(abs(xOffset-centerX))
         # # correct any discrepancy after ease in
         # elif frame <= easeInFrameCount:
         #     xOffset = (frame - padFrameInCount) * pxPerFrame
         #     xOffsetF = 1.0 * xOffset
         # ease out end
-        elif (totalFrames-frame) < easeOutFrameCount:
-            xOffsetF += (direction * easeOutFrames[totalFrames-frame])
+        elif pixelsLeft <= easeOutPixels:
+            pxStep = easeOutFrames.pop() if len(easeOutFrames) > 0 else 1
+            xOffsetF += (direction * pxStep)
             xOffset = roundInt(xOffsetF)
+            # print("%s > %s" % (xOffset, centerX-totalW))
         else:
             xOffset += (direction * pxPerFrame)
             xOffsetF = 1.0 * xOffset
