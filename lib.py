@@ -273,7 +273,7 @@ def makeTrack(duration, instructions, audio, sampleWidth=4, sampleRate=48000, ch
         printProgress(index+1, instructionCount)
     return baseAudio
 
-def mixAudio(instructions, duration, outfilename, sampleWidth=4, sampleRate=48000, channels=2, masterDb=0.0):
+def mixAudio(instructions, duration, outfilename, sampleWidth=4, sampleRate=48000, channels=2, masterDb=0.0, fadeOut=1000):
     # remove instructions with no volume
     instructions = [i for i in instructions if "volume" not in i or i["volume"] > 0]
     audioFiles = list(set([i["filename"] for i in instructions]))
@@ -313,6 +313,8 @@ def mixAudio(instructions, duration, outfilename, sampleWidth=4, sampleRate=4800
     # adjust master volume
     if masterDb != 0.0:
         baseAudio = baseAudio.apply_gain(masterDb)
+    # fade out end
+    baseAudio = baseAudio.fade_out(fadeOut)
     f = baseAudio.export(outfilename, format=format)
     print("Wrote to %s" % outfilename)
 

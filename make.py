@@ -3,9 +3,9 @@
 # python3 make.py -loc "data/lines/1.csv" -overwrite
 # python3 make.py -loc "data/lines/1.csv" -rtl -overwrite
 # python3 combine.py
-# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -overwrite
-# python3 make.py -data "data/lines/A_LEF.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -rtl -overwrite
-# python3 combine.py -in "output/subway_line_A_LEF.mp4,output/subway_line_A_LEF_rtl.mp4" -out "output/subway_line_A_loop.mp4"
+# python3 make.py -data "data/lines/A_LEF.csv" -loc "data/lines/C.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -loc "data/lines/C.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -rtl -overwrite
+# python3 combine.py -in "output/subway_line_A.mp4,output/subway_line_A_rtl.mp4" -out "output/subway_line_A_loop.mp4"
 # python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -overwrite
 # python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -rtl -overwrite
 # python3 combine.py -in "output/subway_line_7.mp4,output/subway_line_7_rtl.mp4" -out "output/subway_line_7_loop.mp4"
@@ -157,6 +157,13 @@ if len(lstations) > 0:
         elif sortByStart is not None:
             currentLStations.append(s)
     stations += addStations
+    # stations = sorted(stations, key=lambda d: d["sortBy"])
+    # for s in stations:
+    #     if "isLocal" in s:
+    #         print(" --"+s["Stop Name"])
+    #     else:
+    #         print(s["Stop Name"])
+    # sys.exit()
 
 # Parse stations
 stations = sorted(stations, key=lambda d: d["income"])
@@ -609,15 +616,6 @@ if not a.AUDIO_ONLY:
 
     makeDirectories([a.OUTPUT_FRAME % (basename, "*")])
 
-    if a.SINGLE_FRAME > 0:
-        ms = lim(frameToMs(a.SINGLE_FRAME, a.FPS) - a.PAD_START, (0, totalMs))
-        frames = msToFrame(ms, a.FPS)
-        xOffset = roundInt(a.WIDTH * 0.5) - pxPerFrame * frames
-        if a.RIGHT_TO_LEFT:
-            xOffset = roundInt(a.WIDTH * 0.5) - totalW + pxPerFrame * frames
-        drawFrame("output/frame.png", ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
-        sys.exit()
-
     if a.OVERWRITE:
         removeFiles(a.OUTPUT_FRAME % (basename, "*"))
 
@@ -645,7 +643,13 @@ if not a.AUDIO_ONLY:
         frame = f + 1
         ms = frameToMs(frame, a.FPS)
         frameFilename = a.OUTPUT_FRAME % (basename, zeroPad(frame, totalFrames))
-        drawFrame(frameFilename, ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
+
+        if a.SINGLE_FRAME < 1 or a.SINGLE_FRAME == frame:
+            if a.SINGLE_FRAME > 0:
+                frameFilename = "output/frame.png"
+            drawFrame(frameFilename, ms, xOffset, vstations, totalW, bulletImg, mapImg, fontStation, fontBorough, a)
+            if a.SINGLE_FRAME > 0:
+                sys.exit()
 
         # ease in start
         if frame < easeInFrameCount:
@@ -656,7 +660,7 @@ if not a.AUDIO_ONLY:
         #     xOffset = (frame - padFrameInCount) * pxPerFrame
         #     xOffsetF = 1.0 * xOffset
         # ease out end
-        elif (totalFrames-frame) <= easeOutFrameCount:
+        elif (totalFrames-frame) < easeOutFrameCount:
             xOffsetF += (direction * easeOutFrames[totalFrames-frame])
             xOffset = roundInt(xOffsetF)
         else:
