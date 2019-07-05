@@ -42,10 +42,11 @@ parser.add_argument('-rtl', dest="RIGHT_TO_LEFT", action="store_true", help="Pla
 parser.add_argument('-ao', dest="AUDIO_ONLY", action="store_true", help="Only output audio?")
 parser.add_argument('-vo', dest="VIDEO_ONLY", action="store_true", help="Only output video?")
 parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help="Output a visualization of the sequence")
+parser.add_argument('-plot', dest="PLOT_SEQUENCE", action="store_true", help="Display a plot chart of the sequence")
 parser.add_argument('-frame', dest="SINGLE_FRAME", default=-1, type=int, help="Output just a single frame")
 
 # Music config
-parser.add_argument('-db', dest="MASTER_DB", type=float, default=0.0, help="Master +/- decibels to be applied to final audio")
+parser.add_argument('-db', dest="MASTER_DB", type=float, default=-2.4, help="Master +/- decibels to be applied to final audio")
 parser.add_argument('-bpm', dest="BPM", type=int, default=120, help="Beats per minute, e.g. 60, 75, 100, 120, 150")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
 parser.add_argument('-dpb', dest="DIVISIONS_PER_BEAT", type=int, default=4, help="e.g. 4 = quarter notes, 8 = eighth notes")
@@ -602,6 +603,14 @@ if a.VISUALIZE_SEQUENCE:
     im.save("output/viz.png")
     sys.exit()
 
+if a.PLOT_SEQUENCE:
+    import matplotlib.pyplot as plt
+    xs = [s['ms']/1000.0 for s in stations]
+    ys = [s['income'] for s in stations]
+    plt.plot(xs, ys)
+    plt.show()
+    sys.exit()
+
 if a.PROBE:
     sys.exit()
 
@@ -617,7 +626,7 @@ if not a.AUDIO_ONLY:
 
     makeDirectories([a.OUTPUT_FRAME % (basename, "*")])
 
-    if a.OVERWRITE:
+    if a.OVERWRITE and a.SINGLE_FRAME < 1:
         removeFiles(a.OUTPUT_FRAME % (basename, "*"))
 
     # calculations for easing in/out
