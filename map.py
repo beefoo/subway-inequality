@@ -328,7 +328,7 @@ for i, feat in enumerate(geojson["features"]):
             if key in props:
                 pout[key] = props[key]
         pout["stroke"] = color
-        pout["stroke-width"] = 2
+        pout["stroke-width"] = 1
         pout["stroke-opacity"] = 1
         pout["fill"] = color
         pout["fill-opacity"] = 0.5
