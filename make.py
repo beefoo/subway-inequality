@@ -11,10 +11,8 @@
 # python3 combine.py -in "output/subway_line_7.mp4,output/subway_line_7_rtl.mp4" -out "output/subway_line_7_loop.mp4"
 
 import argparse
-import gizeh
 import numpy as np
 import os
-from PIL import Image, ImageDraw, ImageFont
 from pprint import pprint
 import sys
 
@@ -86,6 +84,10 @@ parser.add_argument('-mapw', dest="MAP_W", type=int, default=260, help="Map widt
 parser.add_argument('-mlw', dest="MAP_LINE_WIDTH", type=int, default=4, help="Map line in pixels assuming 1920x1080")
 parser.add_argument('-mlc', dest="MAP_LINE_COLOR", default="#eeeeee", help="Secondary text color")
 a = parser.parse_args()
+
+if not a.AUDIO_ONLY:
+    import gizeh
+    from PIL import Image, ImageDraw, ImageFont
 
 startTime = logTime()
 

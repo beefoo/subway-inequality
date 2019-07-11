@@ -18,9 +18,15 @@ I generated [a simple visualization](https://github.com/beefoo/subway-inequality
 - [Python 3](https://www.python.org/) (developed using Python 3.6, but likely 3.5+ should work)
 - [Numpy](https://www.numpy.org/)
 - [Pydub](http://pydub.com/) - For audio manipulation
+
+### Only required for visualization
+
 - [Pillow](https://pillow.readthedocs.io/en/stable/) - For image generation
 - [Gizeh](https://github.com/Zulko/gizeh) - For vector graphics. Requires [Cairo](https://www.cairographics.org/) to be installed
 - [FFmpeg](https://ffmpeg.org/) - For encoding the video file
+
+### Only required for preprocess step
+
 - [Shapely](https://github.com/Toblerity/Shapely) - For geometric calculations (only required for `preprocess.py` step)
 
 ## Preprocessing new data
@@ -47,6 +53,12 @@ The following script generates both the audio and visuals for a single subway li
 
 ```
 python make.py -data "data/lines/7.csv" -img "img/7.png"
+```
+
+If you just want the audio, you can run:
+
+```
+python make.py -data "data/lines/7.csv" -ao
 ```
 
 A large number of options are available for tweaking the end result. You can find their descriptions by running
