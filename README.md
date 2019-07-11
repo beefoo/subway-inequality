@@ -20,6 +20,7 @@ I generated [a simple visualization](https://github.com/beefoo/subway-inequality
 - [Pydub](http://pydub.com/) - For audio manipulation
 - [Pillow](https://pillow.readthedocs.io/en/stable/) - For image generation
 - [Gizeh](https://github.com/Zulko/gizeh) - For vector graphics. Requires [Cairo](https://www.cairographics.org/) to be installed
+- [FFmpeg](https://ffmpeg.org/) - For encoding the video file
 - [Shapely](https://github.com/Toblerity/Shapely) - For geometric calculations (only required for `preprocess.py` step)
 
 ## Preprocessing new data
