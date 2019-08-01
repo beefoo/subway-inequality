@@ -1,5 +1,9 @@
 # Sonification of Income Inequality on the NYC Subway
 
+This is a set of scripts that generate songs based on median household income data along different subway trains in New York City. This is extended from [a song I produced](https://datadrivendj.com/tracks/subway/) as the [Data-Driven DJ](https://datadrivendj.com/) in 2015. For more information about how this song was created, visit the [project page](https://datadrivendj.com/tracks/subway/) on the Data-Driven DJ website.
+
+This codebase produces music in the same way as the Data-Driven DJ project referenced above, but improves the process of generating new songs based on new data (in this case, 2017 [American Community Survey (ACS)](https://www.census.gov/programs-surveys/acs) census data) and adds support for generating songs for any subway line.
+
 ## Data sources
 
 - [MTA subway station data](http://web.mta.info/developers/data/nyct/subway/Stations.csv) via [MTA developers page](http://web.mta.info/developers/developer-data-terms.html#data)
@@ -21,11 +25,15 @@ I generated [a simple visualization](https://github.com/beefoo/subway-inequality
 
 ### Only required for visualization
 
+The song comes with a basic visualization showing where you are in New York City at any given time in the song. This step requires a few more libraries:
+
 - [Pillow](https://pillow.readthedocs.io/en/stable/) - For image generation
 - [Gizeh](https://github.com/Zulko/gizeh) - For vector graphics. Requires [Cairo](https://www.cairographics.org/) to be installed
 - [FFmpeg](https://ffmpeg.org/) - For encoding the video file
 
 ### Only required for preprocess step
+
+This is only necessary if you're attempting to generate songs based on different or new data (i.e. not the 2017 data in the repository)
 
 - [Shapely](https://github.com/Toblerity/Shapely) - For geometric calculations (only required for `preprocess.py` step)
 
@@ -47,6 +55,8 @@ This script does the following:
 
 This will generate a .csv file for each of the subway lines in the folder `data/lines/{LINE SYMBOL}.csv` that contains a column `income` that represents the median household income of the station's surrounding area (census tracts.)
 
+These files have already been processed for [2017 data here](https://github.com/beefoo/subway-inequality/tree/master/data/lines).
+
 ## Generating music and visualization
 
 The following script generates both the audio and visuals for a single subway line and compiles it into a video. At the least you need to indicate a subway line's .csv file (`-data`) and an image that represent's the subway's bullet symbol (`-img`).
@@ -61,16 +71,14 @@ If you just want the audio, you can run:
 python make.py -data "data/lines/7.csv" -ao
 ```
 
+Sometimes if you are creating a song using an express train, you might want to include the local stops as implicit data points between express stops. In this case, you will not see labels for the local stops, but they will be used to add more nuance between express stops which can span a long distance. Here's a command where you are creating a song based on the `2` train with local `1` train stops between express stops:
+
+```
+python3 make.py -data "data/lines/2.csv" -loc "data/lines/1.csv"
+```
+
 A large number of options are available for tweaking the end result. You can find their descriptions by running
 
 ```
 python make.py -h
 ```
-
-### The algorithm
-
-Coming soon.
-
-### Tweaking the music
-
-Coming soon.
