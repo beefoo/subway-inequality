@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# python3 make.py -loc "data/lines/1.csv" -overwrite
-# python3 make.py -loc "data/lines/1.csv" -rtl -overwrite
+# python3 make.py -loc "data/lines/1.csv" -width 3840 -height 2160 -overwrite
+# python3 make.py -loc "data/lines/1.csv" -width 3840 -height 2160 -rtl -overwrite
 # python3 combine.py
-# python3 make.py -data "data/lines/A_LEF.csv" -loc "data/lines/C.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -overwrite
-# python3 make.py -data "data/lines/A_LEF.csv" -loc "data/lines/C.csv" -img "img/A.png" -sw 0.281 -tw 0.29 -rtl -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -width 3840 -height 2160 -loc "data/lines/C.csv" -img "img/A.png" -sw 0.1405 -tw 0.145 -overwrite
+# python3 make.py -data "data/lines/A_LEF.csv" -width 3840 -height 2160 -loc "data/lines/C.csv" -img "img/A.png" -sw 0.1405 -tw 0.145 -rtl -overwrite
 # python3 combine.py -in "output/subway_line_A.mp4,output/subway_line_A_rtl.mp4" -out "output/subway_line_A_loop.mp4"
-# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -overwrite
-# python3 make.py -data "data/lines/7.csv" -img "img/7.png" -sw 0.2345 -tw 0.27125 -reverse -rtl -overwrite
+# python3 make.py -data "data/lines/7.csv" -width 3840 -height 2160 -img "img/7.png" -sw 0.11725 -tw 0.135625 -reverse -overwrite
+# python3 make.py -data "data/lines/7.csv" -width 3840 -height 2160 -img "img/7.png" -sw 0.11725 -tw 0.135625 -reverse -rtl -overwrite
 # python3 combine.py -in "output/subway_line_7.mp4,output/subway_line_7_rtl.mp4" -out "output/subway_line_7_loop.mp4"
 
 import argparse
@@ -29,7 +29,7 @@ parser.add_argument('-width', dest="WIDTH", default=1920, type=int, help="Output
 parser.add_argument('-height', dest="HEIGHT", default=1080, type=int, help="Output video height")
 parser.add_argument('-pad0', dest="PAD_START", default=2000, type=int, help="Pad start in ms")
 parser.add_argument('-pad1', dest="PAD_END", default=2000, type=int, help="Pad end in ms")
-parser.add_argument('-fps', dest="FPS", default=60, type=int, help="Output video frames per second")
+parser.add_argument('-fps', dest="FPS", default=30, type=int, help="Output video frames per second")
 parser.add_argument('-outframe', dest="OUTPUT_FRAME", default="tmp/line_%s/frame.%s.png", help="Output frames pattern")
 parser.add_argument('-aout', dest="AUDIO_OUTPUT_FILE", default="output/subway_line_%s.mp3", help="Output audio file")
 parser.add_argument('-out', dest="OUTPUT_FILE", default="output/subway_line_%s.mp4", help="Output media file")
@@ -52,21 +52,21 @@ parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.3, hel
 parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/- milliseconds an instrument note should be off by to give it a little more 'natural' feel")
 
 # Visual design config
-parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.25, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
-parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.3, help="Station text width as a percent of the screen width")
+parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.125, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
+parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.15, help="Station text width as a percent of the screen width")
 parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.475, help="Center y as a percent of screen height")
-parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.575, help="Borough text center y as a percent of screen height")
-parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.325, help="Station text center y as a percent of screen height")
-parser.add_argument('-cw', dest="CIRCLE_WIDTH", type=int, default=90, help="Circle radius in pixels assuming 1920x1080")
-parser.add_argument('-lh', dest="LINE_HEIGHT", type=int, default=28, help="Height of horizontal line in pixels assuming 1920x1080")
+parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
+parser.add_argument('-sty', dest="STATION_TEXT_Y", type=float, default=0.375, help="Station text center y as a percent of screen height")
+parser.add_argument('-cw', dest="CIRCLE_WIDTH", type=int, default=60, help="Circle radius in pixels assuming 1920x1080")
+parser.add_argument('-lh', dest="LINE_HEIGHT", type=int, default=24, help="Height of horizontal line in pixels assuming 1920x1080")
 parser.add_argument('-bh', dest="BOUNDARY_HEIGHT", type=int, default=166, help="Height of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-bw', dest="BOUNDARY_WIDTH", type=int, default=3, help="Width of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-bm', dest="BOUNDARY_MARGIN", type=int, default=48, help="Horizontal margin of boundary line in pixels assuming 1920x1080")
 parser.add_argument('-mw', dest="MARKER_WIDTH", type=int, default=8, help="Height of horizontal line in pixels assuming 1920x1080")
-parser.add_argument('-sts', dest="STATION_TEXT_SIZE", type=int, default=60, help="Station text size in pixels assuming 1920x1080")
+parser.add_argument('-sts', dest="STATION_TEXT_SIZE", type=int, default=30, help="Station text size in pixels assuming 1920x1080")
 parser.add_argument('-stm', dest="STATION_TEXT_MARGIN", type=int, default=20, help="Station text bottom margin in pixels assuming 1920x1080")
 parser.add_argument('-slm', dest="STATION_LETTER_MARGIN", type=int, default=1, help="Space after each station text letter in pixels assuming 1920x1080")
-parser.add_argument('-bts', dest="BOROUGH_TEXT_SIZE", type=int, default=48, help="Borough text size in pixels assuming 1920x1080")
+parser.add_argument('-bts', dest="BOROUGH_TEXT_SIZE", type=int, default=24, help="Borough text size in pixels assuming 1920x1080")
 parser.add_argument('-blm', dest="BOROUGH_LETTER_MARGIN", type=int, default=1, help="Space after each borough text letter in pixels assuming 1920x1080")
 parser.add_argument('-dw', dest="DIVIDER_WIDTH", type=int, default=28, help="Line divider in pixels assuming 1920x1080")
 parser.add_argument('-dd', dest="DIVIDER_DISTANCE", type=float, default=0.333, help="Distance between dividers as a percent of screen width")
