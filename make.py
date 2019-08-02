@@ -68,6 +68,7 @@ parser.add_argument('-stm', dest="STATION_TEXT_MARGIN", type=int, default=20, he
 parser.add_argument('-slm', dest="STATION_LETTER_MARGIN", type=int, default=1, help="Space after each station text letter in pixels assuming 1920x1080")
 parser.add_argument('-bts', dest="BOROUGH_TEXT_SIZE", type=int, default=24, help="Borough text size in pixels assuming 1920x1080")
 parser.add_argument('-blm', dest="BOROUGH_LETTER_MARGIN", type=int, default=1, help="Space after each borough text letter in pixels assuming 1920x1080")
+parser.add_argument('-bthresh', dest="BOROUGH_THRESHOLD", type=float, default=0.375, help="Minimum width available for displaying borough dividers")
 parser.add_argument('-dw', dest="DIVIDER_WIDTH", type=int, default=28, help="Line divider in pixels assuming 1920x1080")
 parser.add_argument('-dd', dest="DIVIDER_DISTANCE", type=float, default=0.333, help="Distance between dividers as a percent of screen width")
 parser.add_argument('-dc', dest="DIVIDER_COLOR", default="#666666", help="Distance between dividers as a percent of screen width")
@@ -330,6 +331,7 @@ aa["LINE_HEIGHT"] = roundInt(a.LINE_HEIGHT * RESOLUTION)
 aa["BOUNDARY_MARGIN"] = roundInt(a.BOUNDARY_MARGIN * RESOLUTION)
 aa["BOUNDARY_HEIGHT"] = roundInt(a.BOUNDARY_HEIGHT * RESOLUTION)
 aa["BOUNDARY_WIDTH"] = roundInt(a.BOUNDARY_WIDTH * RESOLUTION)
+aa["BOROUGH_THRESHOLD"] = roundInt(1.0 * a.WIDTH * a.BOROUGH_THRESHOLD)
 aa["MARKER_WIDTH"] = roundInt(a.MARKER_WIDTH * RESOLUTION)
 aa["STATION_TEXT_SIZE"] = roundInt(a.STATION_TEXT_SIZE * RESOLUTION)
 aa["STATION_TEXT_MARGIN"] = roundInt(a.STATION_TEXT_MARGIN * RESOLUTION)
@@ -417,7 +419,7 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
         if s["borough"] != s["boroughNext"]:
             deltaBx = abs(stations[i+1]["x"]-s["x"])
             # don't draw boundary in tight space
-            if deltaBx > (a.WIDTH * 0.75):
+            if deltaBx > a.BOROUGH_THRESHOLD:
                 bdx = roundInt(xOffset + (s["x"] + stations[i+1]["x"]) * 0.5)
                 bdx0 = bdx - a.WIDTH/2
                 bdx1 = bdx + a.WIDTH/2
