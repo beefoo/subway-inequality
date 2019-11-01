@@ -82,3 +82,21 @@ A large number of options are available for tweaking the end result. You can fin
 ```
 python make.py -h
 ```
+
+## Conversion to .webm format
+
+With target 400Kb bitrate:
+
+```
+ffmpeg -i subway_line_7_loop.mp4 -c:v libvpx-vp9 -b:v 400K -pass 1 -an -f webm /dev/null && \
+ffmpeg -i subway_line_7_loop.mp4 -c:v libvpx-vp9 -b:v 400K -pass 2 -c:a libopus subway_line_7_loop.webm
+```
+
+For Windows:
+
+```
+ffmpeg -i subway_line_7_loop.mp4 -c:v libvpx-vp9 -b:v 400K -pass 1 -an -f webm NUL && ^
+ffmpeg -i subway_line_7_loop.mp4 -c:v libvpx-vp9 -b:v 400K -pass 2 -c:a libopus subway_line_7_loop.webm
+```
+
+[More documentation](https://trac.ffmpeg.org/wiki/Encode/VP9)
