@@ -127,6 +127,9 @@ def findInList(list, key, value):
             break
     return found
 
+def formatNumber(value):
+    return f'{value:,}'
+
 def formatSeconds(s):
     tString = time.strftime('%H:%M:%S', time.gmtime(s))
     if tString.startswith("00:"):

@@ -32,6 +32,7 @@ parser.add_argument('-pad1', dest="PAD_END", default=2000, type=int, help="Pad e
 parser.add_argument('-fps', dest="FPS", default=30, type=int, help="Output video frames per second")
 parser.add_argument('-outframe', dest="OUTPUT_FRAME", default="tmp/line_%s/frame.%s.png", help="Output frames pattern")
 parser.add_argument('-aout', dest="AUDIO_OUTPUT_FILE", default="output/subway_line_%s.mp3", help="Output audio file")
+parser.add_argument('-dout', dest="DATA_OUTPUT_FILE", default="output/subway_line_%s.csv", help="Output data file")
 parser.add_argument('-out', dest="OUTPUT_FILE", default="output/subway_line_%s.mp4", help="Output media file")
 parser.add_argument('-overwrite', dest="OVERWRITE", action="store_true", help="Overwrite existing files?")
 parser.add_argument('-probe', dest="PROBE", action="store_true", help="Just view statistics?")
@@ -154,7 +155,7 @@ if len(lstations) > 0:
                 step = 1.0 / (len(currentLStations) + 1)
                 for j, ls in enumerate(currentLStations):
                     currentLStations[j]["sortBy"] = sortByStart + (j+1) * step
-                    currentLStations[j]["isLocal"] = True
+                    currentLStations[j]["isLocal"] = 1
                 addStations += currentLStations
                 currentLStations = []
             sortByStart = estations[s["Station ID"]]["sortBy"]
@@ -198,6 +199,19 @@ for i, station in enumerate(stations):
     stations[i]["BoroughNext"] = boroughNext
     stations[i]["ms"] = ms
     ms += duration
+
+if a.PROBE:
+    print("===========================")
+    for s in stations:
+        if "isLocal" in s:
+            print(formatSeconds(roundInt(s["ms"]/1000.0)) + " --- " + s["Stop Name"] + " (LOCAL) - $" + formatNumber(s["income"]))
+        else:
+            print(formatSeconds(roundInt(s["ms"]/1000.0)) + " - " + s["Stop Name"] + " - $" + formatNumber(s["income"]))
+    print("===========================")
+else:
+    dataFilename = a.DATA_OUTPUT_FILE % basename
+    makeDirectories([dataFilename])
+    writeCsv(dataFilename, stations, headings=["ms", "Stop Name", "isLocal", "income", "Borough"])
 
 # Calculate ranges
 distances = [s["distance"] for s in stations if s["distance"] > 0]
@@ -617,6 +631,8 @@ if a.PLOT_SEQUENCE:
 
 if a.PROBE:
     sys.exit()
+
+makeDirectories([a.AUDIO_OUTPUT_FILE, a.OUTPUT_FILE])
 
 if not a.AUDIO_ONLY:
 
