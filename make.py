@@ -40,6 +40,7 @@ parser.add_argument('-reverse', dest="REVERSE", action="store_true", help="Rever
 parser.add_argument('-rtl', dest="RIGHT_TO_LEFT", action="store_true", help="Play from right to left?")
 parser.add_argument('-ao', dest="AUDIO_ONLY", action="store_true", help="Only output audio?")
 parser.add_argument('-vo', dest="VIDEO_ONLY", action="store_true", help="Only output video?")
+parser.add_argument('-do', dest="DATA_ONLY", action="store_true", help="Only output data?")
 parser.add_argument('-viz', dest="VISUALIZE_SEQUENCE", action="store_true", help="Output a visualization of the sequence")
 parser.add_argument('-plot', dest="PLOT_SEQUENCE", action="store_true", help="Display a plot chart of the sequence")
 parser.add_argument('-frame', dest="SINGLE_FRAME", default=-1, type=int, help="Output just a single frame")
@@ -212,6 +213,15 @@ else:
     dataFilename = a.DATA_OUTPUT_FILE % basename
     makeDirectories([dataFilename])
     writeCsv(dataFilename, stations, headings=["ms", "Stop Name", "isLocal", "income", "Borough"])
+    textFilename = replaceFileExtension(dataFilename, ".txt")
+    text = f'Subway Inequality: {basename} train ({stations[-1]["Stop Name"]} Bound)\n\n'
+    text += f'This song above mimics a ride along a subway line (the {basename} train), where the quantity and power of the instruments at any given moment in the song corresponds to the median household income of the neighborhood that you are passing through.  The goal is to have the dramatic contrasts of the song echo the dramatic contrast of income in the city.\n\n'
+    for s in stations:
+        if "isLocal" not in s:
+            text += f'{formatSeconds(roundInt(s["ms"]/1000.0))} - {s["Stop Name"]} - ${formatNumber(s["income"])} household income\n'
+    writeTextFile(textFilename, text)
+    if a.DATA_ONLY:
+        sys.exit()
 
 # Calculate ranges
 distances = [s["distance"] for s in stations if s["distance"] > 0]

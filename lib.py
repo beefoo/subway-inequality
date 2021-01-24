@@ -165,6 +165,10 @@ def getAudio(filename, sampleWidth=4, sampleRate=48000, channels=2):
 def getBasename(fn):
     return os.path.splitext(os.path.basename(fn))[0]
 
+def getFileExt(fn):
+    basename = os.path.basename(fn)
+    return "." + basename.split(".")[-1]
+
 def getLineSize(font, text, letterMargin=0):
     aw, ah = font.getsize("A")
     lw, lh = font.getsize(text)
@@ -415,6 +419,11 @@ def removeFiles(listOrString):
         if os.path.isfile(fn):
             os.remove(fn)
 
+def replaceFileExtension(fn, newExt):
+    extLen = len(getFileExt(fn))
+    i = len(fn) - extLen
+    return fn[:i] + newExt
+
 def roundInt(val):
     return int(round(val))
 
@@ -441,6 +450,10 @@ def writeCsv(filename, arr, headings):
                 row.append(value)
             writer.writerow(row)
     print("Wrote %s rows to %s" % (len(arr), filename))
+
+def writeTextFile(filename, text):
+    with open(filename, "w", encoding="utf8", errors="replace") as f:
+        f.write(text)
 
 def zeroPad(value, total):
     padding = len(str(total))
