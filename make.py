@@ -732,5 +732,9 @@ else:
     print("%s already exists" % audioFilename)
 
 stepTime = logTime(stepTime, "Finished Audio")
-compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)
+if not a.AUDIO_ONLY:
+    if a.VIDEO_ONLY:
+        audioFilename = None
+    compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)
+
 logTime(startTime, "Total execution time")
