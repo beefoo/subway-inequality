@@ -260,7 +260,10 @@ def makeDirectories(filenames):
         if len(dirname) > 0 and not os.path.exists(dirname):
             os.makedirs(dirname)
 
-def makeTrack(duration, instructions, audio, sampleWidth=4, sampleRate=48000, channels=2):
+def makeTrack(duration, instructions, audio, audioDurationMs, sampleWidth=4, sampleRate=48000, channels=2, maxChunkDuration=300000, isChunk=False):
+    if not isChunk and duration > maxChunkDuration:
+        return makeTrackChunks(duration, instructions, audio, audioDurationMs, sampleWidth, sampleRate, channels, chunkDuration=maxChunkDuration)
+
     # build audio
     baseAudio = AudioSegment.silent(duration=duration, frame_rate=sampleRate)
     baseAudio = baseAudio.set_channels(channels)
@@ -278,6 +281,30 @@ def makeTrack(duration, instructions, audio, sampleWidth=4, sampleRate=48000, ch
         stepAudio = audio.apply_gain(i["gain"])
         baseAudio = baseAudio.overlay(stepAudio, position=i["ms"])
         printProgress(index+1, instructionCount)
+    return baseAudio
+
+def makeTrackChunks(duration, instructions, audio, audioDurationMs, sampleWidth=4, sampleRate=48000, channels=2, chunkDuration=300000):
+    # build audio
+    baseAudio = AudioSegment.silent(duration=duration, frame_rate=sampleRate)
+    baseAudio = baseAudio.set_channels(channels)
+    baseAudio = baseAudio.set_sample_width(sampleWidth)
+
+    msStart = 0
+    instructions = sorted(instructions, key=lambda i: i["ms"])
+    while msStart < duration:
+        msEnd = msStart + chunkDuration
+        if msEnd > duration:
+            msEnd = duration
+        chunkInstructions = [i for i in instructions if msStart <= i["ms"] < msEnd]
+        for index, i in enumerate(chunkInstructions):
+            chunkInstructions[index]["ms"] = i["ms"] - msStart
+        if len(chunkInstructions) > 0:
+            chunkDuration = msEnd - msStart + audioDurationMs
+            print(" Making new track chunk at %s" % formatSeconds(msStart/1000.0))
+            chunkedTrack = makeTrack(chunkDuration, chunkInstructions, audio, audioDurationMs, sampleWidth, sampleRate, channels, isChunk=True)
+            baseAudio = baseAudio.overlay(chunkedTrack, position=msStart)
+        msStart = msEnd
+
     return baseAudio
 
 def mixAudio(instructions, duration, outfilename, sampleWidth=4, sampleRate=48000, channels=2, masterDb=0.0, fadeOut=1000):
@@ -311,7 +338,7 @@ def mixAudio(instructions, duration, outfilename, sampleWidth=4, sampleRate=4800
         # make the track
         trackInstructions = [ii for ii in instructions if ii["filename"]==af["filename"]]
         print("Making track %s of %s with %s instructions..." % (i+1, trackCount, len(trackInstructions)))
-        trackAudio = makeTrack(duration, trackInstructions, audio, sampleWidth=sampleWidth, sampleRate=sampleRate, channels=channels)
+        trackAudio = makeTrack(duration, trackInstructions, audio, audioDurationMs, sampleWidth=sampleWidth, sampleRate=sampleRate, channels=channels)
         baseAudio = baseAudio.overlay(trackAudio)
         print("Track %s of %s complete." % (i+1, trackCount))
 

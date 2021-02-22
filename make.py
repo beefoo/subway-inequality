@@ -54,7 +54,7 @@ parser.add_argument('-pm', dest="PRICE_MULTIPLIER", type=float, default=1.3, hel
 parser.add_argument('-vdur', dest="VARIANCE_MS", type=int, default=20, help="+/- milliseconds an instrument note should be off by to give it a little more 'natural' feel")
 
 # Visual design config
-parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.125, help="Minumum station width as a percent of the screen width; adjust this to change the overall visual speed")
+parser.add_argument('-sw', dest="STATION_WIDTH", type=float, default=0.125, help="Minimum station width as a percent of the screen width; adjust this to change the overall visual speed")
 parser.add_argument('-tw', dest="TEXT_WIDTH", type=float, default=0.15, help="Station text width as a percent of the screen width")
 parser.add_argument('-cy', dest="CENTER_Y", type=float, default=0.475, help="Center y as a percent of screen height")
 parser.add_argument('-bty', dest="BOROUGH_TEXT_Y", type=float, default=0.55, help="Borough text center y as a percent of screen height")
@@ -523,7 +523,7 @@ def drawFrame(filename, ms, xOffset, stations, totalW, bulletImg, mapImg, fontSt
     mx = a.MAP_MARGIN
     my = a.HEIGHT - mh - a.MAP_MARGIN
     im.paste(mapImg, (mx, my))
-    lineColor = "#"+stations[0]["color"]
+    lineColor = "#"+str(stations[0]["color"])
     points = []
     allPoints = []
     mstations = stations[:]
@@ -572,7 +572,8 @@ def getEasedFrames(easeFrameCount, stationFrameCount, pxPerFrame):
     fromFrameCount = int(min(easeFrameCount, stationFrameCount) / 2)
     fromPx = fromFrameCount * pxPerFrame
     toFrameCount = easeFrameCount + fromFrameCount # 'fromPx' will be stretched into 'toFrameCount' frames
-    easedPoints = [easeIn(n) * pxPerFrame for n in np.linspace(0, 1.0, num=toFrameCount)]
+    # easedPoints = [easeIn(n) * pxPerFrame for n in np.linspace(0, 1.0, num=toFrameCount)]
+    easedPoints = [n * pxPerFrame for n in np.linspace(0, 1.0, num=toFrameCount)]
     buckets = [0 for n in range(toFrameCount)]
     pxPool = fromPx
     for i in range(toFrameCount):
@@ -735,6 +736,9 @@ stepTime = logTime(stepTime, "Finished Audio")
 if not a.AUDIO_ONLY:
     if a.VIDEO_ONLY:
         audioFilename = None
-    compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)
+    if a.OVERWRITE or not os.path.isfile(outfile):
+        compileFrames(frameInfile, a.FPS, outfile, padZeros, audioFile=audioFilename)
+    else:
+        print("%s already exists" % outfile)
 
 logTime(startTime, "Total execution time")
