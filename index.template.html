@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>The Subway Above Ground: The Sound of Inequality on the NYC Subway</title>
+  <meta name="description" content="Sonification of Income Inequality on the NYC Subway">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="The Subway Above Ground: The Sound of Inequality on the NYC Subway">
+  <meta property="og:url" content="https://beefoo.github.io/subway-inequality/">
+  <meta property="og:image" content="https://beefoo.github.io/subway-inequality/img/subway_above_ground.png">
+  <meta name="image_src" content="https://beefoo.github.io/subway-inequality/img/subway_above_ground.png" />
+
+  <link rel="stylesheet" href="css/vendor/normalize.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+
+  <meta name="theme-color" content="#111111">
+</head>
+
+<body>
+<body>
+
+  <div id="app" class="app">
+
+    <h1>The Subway Above Ground</h1>
+
+    <p class="intro">
+      Income inequality is a defining characteristic of New York City, but it is easy to be unaware of it. Many New Yorkers use the subway to get around, rendering the above ground conditions of the places we travel through largely invisible. In this piece, I use music as a metaphor and measure of inequality, and the subway as a means of following the data through space and time.
+    </p>
+
+    <p class="instructions">
+      Here you can stream or download one of 46 media files that loosely follow full rides along 23 of the MTA subway lines in both directions. Once you start to play the file, find your station, and listen to the song in the background as you ride the subway. The <strong>quantity and power of the instruments</strong> at any given moment in the song correspond to <strong>the median household income</strong> of the neighborhood that you are passing through. The result is a meditative piece in which the dramatic contrasts of a song echo the dramatic differences of income in the city.
+    </p>
+
+    <p class="note">You can also visit this piece's <a href="https://beefoo.github.io/subway-inequality-map/">sister project</a> that turns this same data into a 3D interactive map</p>
+
+    <ul class="lines">
+
+      {lineContent}
+
+    </ul>
+
+    <div class="credits">
+      <p>
+        Created by <a href="https://brianfoo.com">Brian Foo</a> using <a href="https://factfinder.census.gov/">Median household income by census tract, 2017 ACS 5-year estimates (B19013)</a>
+        and <a href="http://web.mta.info/developers/data/nyct/subway/Stations.csv">MTA subway station data</a>. <a href="https://github.com/beefoo/subway-inequality">Code</a> is open source.
+      </p>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

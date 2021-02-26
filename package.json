@@ -1,0 +1,10 @@
+{
+  "name": "subway-inequality",
+  "description": "Sonification of Income Inequality on the NYC Subway",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "express": "^4.17.1"
+  }
+}

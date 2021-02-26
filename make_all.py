@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-in', dest="DATA_DIR", default="data/lines/*.csv", help="Path to input data directory")
 parser.add_argument('-ao', dest="AUDIO_ONLY", action="store_true", help="Only output audio?")
 parser.add_argument('-vo', dest="VIDEO_ONLY", action="store_true", help="Only output video?")
+parser.add_argument('-do', dest="DATA_ONLY", action="store_true", help="Only output data?")
 parser.add_argument('-reverse', dest="REVERSE", action="store_true", help="Reverse the line?")
 parser.add_argument('-overwrite', dest="OVERWRITE", action="store_true", help="Overwrite existing files?")
 parser.add_argument('-mpb', dest="METERS_PER_BEAT", type=int, default=75, help="Higher numbers creates shorter songs")
@@ -76,6 +77,8 @@ for line in lines:
         command.append('-ao')
     elif a.VIDEO_ONLY:
         command.append('-vo')
+    elif a.DATA_ONLY:
+        command.append('-do')
     if a.OVERWRITE:
         command.append('-overwrite')
 

@@ -435,6 +435,13 @@ def readCsv(filename, doParseNumbers=True, skipLines=0, encoding="utf8", readDic
             print("Read %s rows from %s" % (len(rows), filename))
     return (fieldnames, rows)
 
+def readTextFile(filename):
+    contents = ""
+    if os.path.isfile(filename):
+        with open(filename, "r", encoding="utf8", errors="replace") as f:
+            contents = f.read()
+    return contents
+
 def removeFiles(listOrString):
     filenames = listOrString
     if not isinstance(listOrString, list) and "*" in listOrString:

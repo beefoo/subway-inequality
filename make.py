@@ -101,6 +101,7 @@ ROUND_TO_NEAREST = roundInt(1.0 * BEAT_MS / a.DIVISIONS_PER_BEAT)
 basename = getBasename(a.DATA_FILE)
 if "_" in basename:
     basename, _ = tuple(basename.split("_"))
+lineName = basename
 if a.RIGHT_TO_LEFT:
     basename += "_rtl"
 
@@ -199,6 +200,7 @@ for i, station in enumerate(stations):
     stations[i]["vduration"] = duration
     stations[i]["BoroughNext"] = boroughNext
     stations[i]["ms"] = ms
+    stations[i]["lineName"] = lineName
     ms += duration
 
 if a.PROBE:
@@ -212,7 +214,7 @@ if a.PROBE:
 else:
     dataFilename = a.DATA_OUTPUT_FILE % basename
     makeDirectories([dataFilename])
-    writeCsv(dataFilename, stations, headings=["ms", "Stop Name", "isLocal", "income", "Borough"])
+    writeCsv(dataFilename, stations, headings=["ms", "Stop Name", "isLocal", "income", "Borough", "lineName"])
     textFilename = replaceFileExtension(dataFilename, ".txt")
     text = f'Subway Inequality: {basename} train ({stations[-1]["Stop Name"]} Bound)\n\n'
     text += f'This song above mimics a ride along a subway line (the {basename} train), where the quantity and power of the instruments at any given moment in the song corresponds to the median household income of the neighborhood that you are passing through.  The goal is to have the dramatic contrasts of the song echo the dramatic contrast of income in the city.\n\n'

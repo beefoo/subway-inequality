@@ -2,3 +2,5 @@
 output/*
 !output/.keep
 tmp/*
+node_modules
+package-lock.json
